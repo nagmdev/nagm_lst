@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Nagm - Your trusted partner for digital solutions." />
+    <title>Nagm</title>
+    <link rel="icon" type="image/png" href="/assets/logo-DBDUU0SO.png" />
+    <link rel="apple-touch-icon" href="/assets/logo-DBDUU0SO.png" />
+    <script>
+      // Prevent VM errors from affecting the application
+      window.addEventListener('error', function(e) {
+        // Ignore VM errors (they come from browser extensions or console commands)
+        if (e.filename && e.filename.includes('VM')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+      
+      // Catch any undefined variable errors
+      window.addEventListener('unhandledrejection', function(e) {
+        console.warn('Unhandled promise rejection:', e.reason);
+        e.preventDefault();
+      });
+    </script>
+    <script type="module" crossorigin src="/assets/index-Chw1divm.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-C_ebaUY_.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Question {
+  id                      Int                  @id @default(autoincrement())
+  text                    String
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  leadershipPrincipleName String?
+  companyName             String?
+  deepSeekInteractionId   Int?                 @unique
+  questionType            QuestionTypeEnum     @default(BEHAVIORAL)
+  answers                 Answer[]
+  deepSeekInteraction     DeepSeekInteraction? @relation(fields: [deepSeekInteractionId], references: [id])
+}
+
+model DeepSeekInteraction {
+  id                    Int                  @id @default(autoincrement())
+  prompt                String
+  response              String
+  questionId            Int?                 @unique
+  positionId            Int?
+  companyId             Int?
+  leadershipPrincipleId Int?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  questionType          QuestionTypeEnum?
+  company               Company?             @relation(fields: [companyId], references: [id])
+  leadershipPrinciple   LeadershipPrinciple? @relation(fields: [leadershipPrincipleId], references: [id])
+  position              Position?            @relation(fields: [positionId], references: [id])
+  question              Question?
+}
+
+model Answer {
+  id         Int              @id @default(autoincrement())
+  situation  String
+  task       String
+  action     String
+  result     String
+  audioUrl   String?
+  questionId Int?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  userId     String
+  question   Question?        @relation(fields: [questionId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+  revisions  AnswerRevision[]
+  tags       Tag[]            @relation("AnswerToTag")
+}
+
+model AnswerRevision {
+  id        Int      @id @default(autoincrement())
+  situation String
+  task      String
+  action    String
+  result    String
+  audioUrl  String?
+  answerId  Int
+  createdAt DateTime @default(now())
+  answer    Answer   @relation(fields: [answerId], references: [id])
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  answers   Answer[] @relation("AnswerToTag")
+}
+
+model WaitingList {
+  id        Int      @id @default(autoincrement())
+  isWaiting Boolean
+  email     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model User {
+  id                String        @id
+  email             String        @unique
+  firstName         String?
+  lastName          String?
+  phone             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  password          String?
+  refreshToken      String?
+  role              String        @default("user")
+  resetOtp          String?
+  resetOtpExpires   DateTime?
+  verificationToken String?
+  isVerified        Boolean       @default(false)
+  status            UserStatus    @default(ACTIVE)
+  otpCode           String?
+  otpExpiresAt      DateTime?
+  lastOtpSentAt     DateTime?
+  atsResults        ATSResult[]
+  answers           Answer[]
+  applications      Application[]
+  jobs              Job[]         @relation("JobEmployer")
+}
+
+model Company {
+  id                   Int                   @id @default(autoincrement())
+  name                 String                @unique
+  website              String?
+  careerSiteUrl        String?
+  status               String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deepSeekInteractions DeepSeekInteraction[]
+  leadershipPrinciples LeadershipPrinciple[]
+  positions            Position[]
+}
+
+model LeadershipPrinciple {
+  id                   Int                   @id @default(autoincrement())
+  name                 String
+  description          String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  companyId            Int
+  deepSeekInteractions DeepSeekInteraction[]
+  company              Company               @relation(fields: [companyId], references: [id])
+
+  @@unique([name, companyId])
+}
+
+model Position {
+  id                   Int                   @id @default(autoincrement())
+  title                String
+  companyId            Int
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deepSeekInteractions DeepSeekInteraction[]
+  company              Company               @relation(fields: [companyId], references: [id])
+}
+
+model ATSResult {
+  id              Int      @id @default(autoincrement())
+  userId          String
+  /// Path of the uploaded CV file on disk
+  cvPath          String
+  /// Full job description text used for the scan
+  jobDescription  String
+  /// Overall ATS match score (0 - 100)
+  atsScore        Float
+  /// Human‑readable summary / recommendations returned by the ATS
+  recommendations String
+  /// Whether the candidate passed the ATS threshold
+  pass            Boolean
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  /// Optional plain-text extraction of the CV for debugging / analysis
+  cvText          String?
+  /// Optional raw JSON payload returned by the ATS provider (for later analysis)
+  fullReportJson  String?
+  /// Optional link to a specific job when the scan is done from a job application flow
+  jobId           Int?
+  job             Job?     @relation(fields: [jobId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model Job {
+  id               Int            @id @default(autoincrement())
+  title            String
+  description      String
+  responsibilities String
+  requirements     String[]       @default([])
+  salaryMin        Float?
+  salaryMax        Float?
+  location         String
+  employmentType   EmploymentType @default(FULL_TIME)
+  status           JobStatus      @default(PENDING)
+  createdBy        String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  atsResults       ATSResult[]
+  applications     Application[]
+  employer         User           @relation("JobEmployer", fields: [createdBy], references: [id])
+}
+
+model Application {
+  id              Int               @id @default(autoincrement())
+  candidateId     String
+  jobId           Int
+  cvUrl           String
+  expectedSalary  Float
+  experienceYears Int
+  skills          String[]          @default([])
+  atsScore        Float?
+  atsReport       String?
+  status          ApplicationStatus @default(NEW)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  candidate       User              @relation(fields: [candidateId], references: [id])
+  job             Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+}
+
+enum QuestionTypeEnum {
+  BEHAVIORAL
+  SYSTEM_DESIGN
+  TECHNICAL
+  DATA_STRUCTURE
+  ALGORITHMS
+  PROBLEM_SOLVING
+  CASE_STUDY
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+}
+
+enum JobStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+enum ApplicationStatus {
+  NEW
+  REVIEWED
+  INTERVIEW
+  REJECTED
+}
