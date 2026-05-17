@@ -23,7 +23,11 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://localhost:5173"],  
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    process.env.FRONTEND_URL || "",
+  ].filter(Boolean) as string[],
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   allowedHeaders: "Content-Type,Authorization",
@@ -90,13 +94,15 @@ function startServer(port: number, remainingAttempts: number = 10): void {
     if (error && error.code === 'EADDRINUSE' && remainingAttempts > 0) {
       const nextPort = port + 1;
       console.warn(`Port ${port} is in use. Trying ${nextPort}...`);
-      startServer(nextPort, remainingAttempts - 1);
+      startServer(ne
+    console.error('FaixtPort, remainingAttempts - 1);
       return;
-    }
-    console.error('Failed to start server:', error);
+    }led to start server:', error);
     process.exit(1);
   });
 }
 
-startServer(DEFAULT_PORT);
+if (!process.env.VERCEL) {
+  startServer(DEFAULT_PORT);
+}
 
