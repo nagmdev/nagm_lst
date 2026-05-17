@@ -94,10 +94,10 @@ function startServer(port: number, remainingAttempts: number = 10): void {
     if (error && error.code === 'EADDRINUSE' && remainingAttempts > 0) {
       const nextPort = port + 1;
       console.warn(`Port ${port} is in use. Trying ${nextPort}...`);
-      startServer(ne
-    console.error('FaixtPort, remainingAttempts - 1);
+      startServer(nextPort, remainingAttempts - 1);
       return;
-    }led to start server:', error);
+    }
+    console.error('Failed to start server:', error);
     process.exit(1);
   });
 }
@@ -105,4 +105,3 @@ function startServer(port: number, remainingAttempts: number = 10): void {
 if (!process.env.VERCEL) {
   startServer(DEFAULT_PORT);
 }
-
