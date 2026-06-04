@@ -2,7 +2,7 @@
 
 export const config = {
   // API Base URL - changes based on environment
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '/api',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'https://nagm-backend.vercel.app/api',
   
   // Backend URL for proxy (development only)
   backendUrl: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000',
