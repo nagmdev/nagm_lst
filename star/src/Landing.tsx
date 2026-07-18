@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './landing.css';
 
 /**
- * nagm.io marketing landing — same design as the app (app.nagm.io) landing.
- * All CTAs cross over to the app on app.nagm.io, so signing in / getting
- * started lands the visitor straight in the product.
+ * nagm.io marketing landing. CTAs go to nagm.io's own login/register (the
+ * pre-auth flow); those pages sign the visitor in and only THEN hand off to
+ * app.nagm.io — so nobody reaches the app before authenticating.
  */
-
-const APP = 'https://app.nagm.io';
-const goRegister = () => { window.location.href = `${APP}/register`; };
-const goLogin = () => { window.location.href = `${APP}/login`; };
 
 const ARROW = 'M5 12h14M13 6l6 6-6 6';
 
@@ -74,6 +71,9 @@ const Spark = ({ size = 14, fill = '#fff' }: { size?: number; fill?: string }) =
 );
 
 const Landing: React.FC = () => {
+  const navigate = useNavigate();
+  const goRegister = () => navigate('/register');
+  const goLogin = () => navigate('/login');
   const [dark, setDark] = useState<boolean>(() =>
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
   );

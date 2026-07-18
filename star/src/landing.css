@@ -76,3 +76,24 @@ body {
 
 @media (max-width: 720px) { .ng-topbar-search { display: none !important; } }
 @media (max-width: 860px) { .ng-dash-grid { grid-template-columns: 1fr !important; } }
+
+/* Auth fields (inside a .ng-auth wrapper) */
+.ng-auth label { font-size: 13px; font-weight: 600; color: var(--ink2); }
+.ng-auth input:not([type="checkbox"]):not([type="radio"]) {
+  width: 100%; height: 46px; border: 1px solid var(--line); background: var(--panel);
+  border-radius: 12px; padding: 0 14px; margin-top: 6px; font-size: 14px; font-family: inherit;
+  color: var(--ink); outline: none; box-shadow: none; transition: border-color .15s;
+}
+.ng-auth input:not([type="checkbox"]):not([type="radio"]):focus { border-color: var(--brand); }
+.ng-auth input::placeholder { color: var(--ink3); }
+.ng-auth button[type="submit"] {
+  width: 100%; height: 48px; border-radius: 12px; border: none; background: var(--grad); color: #fff;
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px var(--brandShadow);
+  transition: transform .15s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.ng-auth button[type="submit"]:hover { transform: translateY(-1px); }
+.ng-auth button[type="submit"]:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+@media (max-width: 900px) {
+  .ng-auth-grid { grid-template-columns: 1fr !important; }
+  .ng-auth-brand { display: none !important; }
+}

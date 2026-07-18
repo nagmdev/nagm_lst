@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import Landing from './Landing';
+import Root from './Root';
 import './landing.css';
 
-// nagm.io is now the marketing landing for the app on app.nagm.io. It renders
-// only the Landing — the old app code is no longer imported, so it isn't built.
+// nagm.io: marketing landing + pre-auth flow (login/register/verify) that hands
+// the session off to app.nagm.io. The old STAR app code is no longer imported.
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -58,7 +58,7 @@ window.addEventListener('unhandledrejection', (event) => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <Landing />
+      <Root />
     </ErrorBoundary>
   </React.StrictMode>
 );
