@@ -18,12 +18,16 @@ const Login: React.FC = () => {
     setBusy(true);
     try {
       const t = await authApi.login(email.trim(), password, remember);
-      if (t.requiresVerification) {
+      await handoffToApp(t, remember); // → app.nagm.io, already signed in
+    } catch (e2: any) {
+      // The backend signals "email not verified" via HTTP 403 (which axios
+      // rejects), so it lands here — route into the verify flow instead of
+      // showing a dead-end error to an unverified user.
+      const resp = e2?.response;
+      if (resp?.status === 403 && resp?.data?.requiresVerification) {
         navigate('/verify', { state: { email: email.trim(), password, rememberMe: remember } });
         return;
       }
-      handoffToApp(t, remember); // → app.nagm.io, already signed in
-    } catch (e2) {
       setErr(apiError(e2, 'Could not sign you in. Check your email and password.'));
       setBusy(false);
     }

@@ -14,6 +14,7 @@ const Verify: React.FC = () => {
 
   const [otp, setOtp] = useState('');
   const [busy, setBusy] = useState(false);
+  const [resending, setResending] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
 
@@ -30,26 +31,37 @@ const Verify: React.FC = () => {
     e.preventDefault();
     setErr('');
     setBusy(true);
+    // Verify the code on its own, so a failure here is genuinely a bad/expired code.
     try {
       await authApi.verifyEmail(email, otp.trim());
+    } catch (e2) {
+      setErr(apiError(e2, 'That code didn’t work. Please try again.'));
+      setBusy(false);
+      return;
+    }
+    // Code accepted and the account is now active. Sign in + hand off separately,
+    // so a transient sign-in blip isn't mislabelled as a bad code.
+    try {
       if (password) {
-        // Auto sign-in with the credentials just used, then hand off to the app.
         const t = await authApi.login(email, password, remember);
-        handoffToApp(t, remember);
+        await handoffToApp(t, remember);
         return;
       }
       // No password in flight (verifying an existing login) — go sign in.
       navigate('/login');
-    } catch (e2) {
-      setErr(apiError(e2, 'That code didn’t work. Please try again.'));
+    } catch (e3) {
+      setErr(apiError(e3, 'Your email is verified, but sign-in didn’t complete. Please sign in.'));
       setBusy(false);
     }
   };
 
   const resend = async () => {
+    if (resending) return; // guard against a double-tap firing two /resend calls
+    setResending(true);
     setErr(''); setMsg('');
     try { await authApi.resend(email); setMsg('A new code is on its way.'); }
     catch (e2) { setErr(apiError(e2, 'Could not resend the code.')); }
+    finally { setResending(false); }
   };
 
   return (
@@ -63,7 +75,7 @@ const Verify: React.FC = () => {
         {err && <div style={{ fontSize: 13.5, color: 'var(--danger, #D6453F)', background: 'var(--dangerSoft, #FCEAE9)', padding: '10px 12px', borderRadius: 10 }}>{err}</div>}
         <button type="submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify & continue'}</button>
       </form>
-      <button onClick={resend} style={{ marginTop: 16, width: '100%', background: 'none', border: 'none', color: 'var(--brandInk)', fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>Resend code</button>
+      <button onClick={resend} disabled={resending} style={{ marginTop: 16, width: '100%', background: 'none', border: 'none', color: 'var(--brandInk)', fontWeight: 600, fontSize: 13.5, cursor: resending ? 'default' : 'pointer', opacity: resending ? 0.6 : 1 }}>{resending ? 'Sending…' : 'Resend code'}</button>
     </AuthShell>
   );
 };
