@@ -49,11 +49,39 @@ export async function handoffToApp(t: Tokens, rememberMe: boolean): Promise<void
   window.location.href = `${APP_ORIGIN}/#code=${encodeURIComponent(data.code)}`;
 }
 
+/** The kind of account chosen at sign-up. NOTE: this is a *request*, not an
+ *  authorization level — a recruiter/company account is created as a normal user
+ *  and only becomes HR when an admin approves it. */
+export type AccountRole = 'candidate' | 'recruiter' | 'company';
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  role?: AccountRole;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  country?: string;
+  // Recruiter
+  jobTitle?: string;
+  linkedInProfile?: string;
+  // Company
+  companyName?: string;
+  industry?: string;
+  companySize?: string;
+  websiteUrl?: string;
+}
+
 export const authApi = {
   login: (email: string, password: string, rememberMe: boolean) =>
     api.post<Tokens>('/auth/login', { email, password, rememberMe }).then((r) => r.data),
-  register: (payload: { email: string; password: string; firstName: string; lastName: string; phone?: string }) =>
-    api.post<{ message: string; id: string; email: string }>('/auth/register', payload).then((r) => r.data),
+  register: (payload: RegisterPayload) =>
+    api
+      .post<{ message: string; id: string; email: string; requestedRole?: 'recruiter' | 'company' | null }>(
+        '/auth/register',
+        payload,
+      )
+      .then((r) => r.data),
   verifyEmail: (email: string, otp: string) =>
     api.post<{ message: string }>('/auth/verify-email', { email, otp }).then((r) => r.data),
   resend: (email: string) => api.post('/auth/resend-verification', { email }).then((r) => r.data),

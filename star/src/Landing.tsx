@@ -73,6 +73,8 @@ const Spark = ({ size = 14, fill = '#fff' }: { size?: number; fill?: string }) =
 const Landing: React.FC = () => {
   const navigate = useNavigate();
   const goRegister = () => navigate('/register');
+  // "Hire with Nagm" opens sign-up with the Recruiter account type preselected.
+  const goRecruiter = () => navigate('/register', { state: { role: 'recruiter' } });
   const goLogin = () => navigate('/login');
   const [dark, setDark] = useState<boolean>(() =>
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
@@ -132,7 +134,7 @@ const Landing: React.FC = () => {
                 Build your CV — free
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
               </button>
-              <button onClick={goRegister} style={{ height: 50, padding: '0 22px', borderRadius: 13, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+              <button onClick={goRecruiter} style={{ height: 50, padding: '0 22px', borderRadius: 13, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" /></svg>Hire with Nagm
               </button>
             </div>
@@ -296,7 +298,7 @@ const Landing: React.FC = () => {
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,.9)', margin: '0 0 26px' }}>Join 335+ candidates and 25 companies already hiring on Nagm.</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={goRegister} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: 'none', background: '#fff', color: 'var(--brandInk)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Build your CV — free</button>
-            <button onClick={goRegister} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: '1px solid rgba(255,255,255,.4)', background: 'rgba(255,255,255,.12)', color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer' }}>Hire with Nagm</button>
+            <button onClick={goRecruiter} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: '1px solid rgba(255,255,255,.4)', background: 'rgba(255,255,255,.12)', color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer' }}>Hire with Nagm</button>
           </div>
         </div>
       </section>

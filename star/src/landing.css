@@ -23,8 +23,13 @@
   --grad: linear-gradient(120deg, #15C7E0, #6D5BF5 55%, #A23DEA);
   --ok: #1F9D57;
   --okSoft: #E5F5EC;
+  --warn: #C8871B;
+  --warnSoft: #FBF1DE;
+  --danger: #D6453F;
+  --dangerSoft: #FCEAE9;
   --inkPanel: #11141C;
   --inkPanelLine: #2A2F3C;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 6px 18px rgba(16, 24, 40, .06);
   --shadowLg: 0 16px 48px rgba(16, 24, 40, .14);
   --heroGlow: radial-gradient(900px 420px at 78% 8%, rgba(109, 91, 245, .10), transparent 60%),
     radial-gradient(700px 380px at 95% 40%, rgba(21, 199, 224, .08), transparent 60%);
@@ -51,8 +56,13 @@
   --grad: linear-gradient(120deg, #15C7E0, #7B6BFF 55%, #A85CF0);
   --ok: #34C172;
   --okSoft: #10241A;
+  --warn: #E0A33C;
+  --warnSoft: #2A2113;
+  --danger: #F0635C;
+  --dangerSoft: #2A1514;
   --inkPanel: #0C0E15;
   --inkPanelLine: #222838;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .45);
   --shadowLg: 0 20px 56px rgba(0, 0, 0, .6);
   --heroGlow: radial-gradient(900px 420px at 78% 8%, rgba(123, 107, 255, .16), transparent 60%),
     radial-gradient(700px 380px at 95% 40%, rgba(44, 212, 236, .10), transparent 60%);
@@ -97,3 +107,27 @@ body {
   .ng-auth-grid { grid-template-columns: 1fr !important; }
   .ng-auth-brand { display: none !important; }
 }
+
+/* ---- Multi-role sign-up (account type cards, dropdown, field focus) ---- */
+
+/* Fields that manage their own inline styling opt out of the .ng-auth input
+   rule's margin so labels/spacing stay consistent. */
+.ng-auth input.ng-auth-field { margin-top: 0; }
+.ng-auth-field:focus { border-color: var(--brand) !important; box-shadow: 0 0 0 3px var(--brandSoft2) !important; }
+
+.ng-role-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (hover: hover) {
+  .ng-role-tab:not([aria-checked="true"]):hover { color: var(--ink); background: var(--hover); }
+}
+@media (max-width: 640px) {
+  .ng-role-cards { flex-direction: column !important; }
+  .ng-auth-field { font-size: 16px !important; }
+}
+
+/* SelectDropdown open/close animation + list scrollbar */
+@keyframes ngFadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ngFadeDown { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(6px); } }
+.ng-dropdown-list::-webkit-scrollbar { width: 4px; }
+.ng-dropdown-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
+.ng-dropdown-list::-webkit-scrollbar-track { background: transparent; }
+.ng-dropdown-list { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }

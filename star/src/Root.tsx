@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import AuthPage from './pages/AuthPage';
 import Verify from './pages/Verify';
 
 // nagm.io: marketing landing + the pre-auth flow (login / register / verify).
@@ -11,8 +10,8 @@ export default function Root() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/register" element={<AuthPage />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
