@@ -6,6 +6,7 @@ import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
 import { authApi, handoffToApp, apiError } from '../auth';
 import type { AccountRole, RegisterPayload } from '../auth';
+import { emailError, emailSuggestion, phoneError, phoneExample, normalizePhone } from '../utils/contact';
 
 type AuthMode = 'signup' | 'login';
 
@@ -21,12 +22,6 @@ const COUNTRY_CODES: Record<string, string> = {
   'Egypt': '(+20)', 'Saudi Arabia': '(+966)', 'United Arab Emirates': '(+971)',
 };
 
-const COUNTRY_PHONE_MAP: Record<string, string> = {
-  'Egypt': '+20 100 000 0000',
-  'Saudi Arabia': '+966 50 000 0000',
-  'United Arab Emirates': '+971 50 000 0000',
-};
-
 const COUNTRY_OPTIONS = ['Egypt', 'Saudi Arabia', 'United Arab Emirates'];
 const DEFAULT_COUNTRY = 'Egypt';
 
@@ -36,7 +31,6 @@ const PERSONAL_DOMAINS = [
   'yandex.com', 'gmx.com', 'fastmail.com', 'tutanota.com',
 ];
 
-const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Mirrors the backend policy: 8+ chars and at least 3 of the 4 character classes. */
 function passwordIssue(pw: string): string {
@@ -114,14 +108,17 @@ const AuthPage: React.FC = () => {
       case 'lastName': err = v ? '' : 'Last name is required'; break;
       case 'companyName': err = v ? '' : 'Company name is required'; break;
       case 'jobTitle': err = v ? '' : 'Job title is required'; break;
-      case 'email': err = !v ? 'Email is required' : emailRe.test(v) ? '' : 'Invalid email address'; break;
+      case 'email': err = emailError(v); break;
       case 'companyEmail':
       case 'businessEmail':
-        if (!v) err = 'Business email is required';
-        else if (!emailRe.test(v)) err = 'Invalid email address';
-        else if (PERSONAL_DOMAINS.includes(v.split('@')[1]?.toLowerCase())) err = 'Please use your company email, not a personal address';
+        err = emailError(v);
+        if (!err && PERSONAL_DOMAINS.includes(v.split('@')[1]?.toLowerCase())) {
+          err = 'Please use your company email, not a personal address';
+        }
         break;
-      case 'phone': err = !v ? 'Phone number is required' : /^[+\d][\d\s\-()]{6,20}$/.test(v) ? '' : 'Invalid phone number'; break;
+      // Phone is optional for a candidate but required for hiring accounts —
+      // recruiters get called back on it.
+      case 'phone': err = phoneError(v, values.country, role !== 'candidate'); break;
       case 'linkedInProfile': err = v && !v.includes('linkedin.com') ? 'Enter a valid LinkedIn URL' : ''; break;
       case 'websiteUrl': err = v && !/^https?:\/\/.+\..+/.test(v) ? 'Invalid URL' : ''; break;
       case 'password': err = passwordIssue(values.password); break;
@@ -183,16 +180,16 @@ const AuthPage: React.FC = () => {
       if (role === 'candidate') {
         payload.firstName = values.firstName.trim();
         payload.lastName = values.lastName.trim();
-        if (values.phone.trim()) payload.phone = values.phone.trim();
+        if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
       } else if (role === 'recruiter') {
         payload.firstName = values.firstName.trim();
         payload.lastName = values.lastName.trim();
-        payload.phone = values.phone.trim();
+        payload.phone = normalizePhone(values.phone, values.country);
         payload.jobTitle = values.jobTitle.trim();
         payload.linkedInProfile = values.linkedInProfile.trim();
       } else {
         payload.companyName = values.companyName.trim();
-        payload.phone = values.phone.trim();
+        payload.phone = normalizePhone(values.phone, values.country);
         payload.industry = values.industry;
         payload.companySize = values.companySize;
         if (values.websiteUrl.trim()) payload.websiteUrl = values.websiteUrl.trim();
@@ -264,6 +261,20 @@ const AuthPage: React.FC = () => {
       </div>
       {errors[name] && touched[name] && (
         <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors[name]}</div>
+      )}
+      {/* Catch the classic "@gmial.com" slip — one tap fixes it. */}
+      {opts?.type === 'email' && !errors[name] && emailSuggestion(values[name] || '') && (
+        <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>
+          Did you mean{' '}
+          <button
+            type="button"
+            onClick={() => { handleChange(name, emailSuggestion(values[name] || '')!); setTouched((p) => ({ ...p, [name]: true })); }}
+            style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' }}
+          >
+            {emailSuggestion(values[name] || '')}
+          </button>
+          ?
+        </div>
       )}
     </div>
   );
@@ -361,7 +372,7 @@ const AuthPage: React.FC = () => {
         {field('lastName', 'Last Name', { autoComplete: 'family-name', placeholder: 'Mansour' })}
       </div>
       {field('email', 'Email', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: COUNTRY_PHONE_MAP[values.country], required: false, autoComplete: 'tel' })}
+      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), required: false, autoComplete: 'tel' })}
       {countrySelect()}
       {passwordField('password', 'Password', 'new-password')}
       {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
@@ -377,7 +388,7 @@ const AuthPage: React.FC = () => {
         {field('lastName', 'Last Name', { autoComplete: 'family-name' })}
       </div>
       {field('companyEmail', 'Company Email', { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: COUNTRY_PHONE_MAP[values.country], autoComplete: 'tel' })}
+      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), autoComplete: 'tel' })}
       {field('jobTitle', 'Job Title', { placeholder: 'Talent Acquisition Specialist', icon: <Briefcase size={15} /> })}
       {field('linkedInProfile', 'LinkedIn Profile', { type: 'url', placeholder: 'https://linkedin.com/in/yourprofile', required: false, icon: <Globe size={15} /> })}
       {countrySelect()}
@@ -404,7 +415,7 @@ const AuthPage: React.FC = () => {
       </div>
       {field('websiteUrl', 'Website', { type: 'url', placeholder: 'https://company.com', required: false, icon: <Globe size={15} /> })}
       {countrySelect()}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: COUNTRY_PHONE_MAP[values.country], autoComplete: 'tel' })}
+      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), autoComplete: 'tel' })}
       {passwordField('password', 'Password', 'new-password')}
       {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
       {terms()}
