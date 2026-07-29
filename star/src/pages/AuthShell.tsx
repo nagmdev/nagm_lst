@@ -16,7 +16,7 @@ const AuthShell: React.FC<{ title: string; subtitle: string; children: React.Rea
   };
 
   return (
-    <div className="ng-auth ng-auth-grid" style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+    <div className="ng-auth ng-auth-grid" style={{ height: '100vh', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
       {/* Brand panel */}
       <div className="ng-auth-brand" style={{ position: 'relative', overflow: 'hidden', background: 'var(--inkPanel)', color: '#fff', padding: '56px 52px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div style={{ position: 'absolute', top: -80, left: '20%', width: 360, height: 360, borderRadius: '50%', background: 'var(--grad)', opacity: 0.22, filter: 'blur(70px)', pointerEvents: 'none' }} />
@@ -35,8 +35,8 @@ const AuthShell: React.FC<{ title: string; subtitle: string; children: React.Rea
         <div style={{ position: 'relative', fontSize: 12.5, color: 'rgba(255,255,255,.5)' }}>© 2026 Nagm.io · Cairo · Riyadh · Dubai</div>
       </div>
 
-      {/* Form panel */}
-      <div style={{ position: 'relative', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 28px' }}>
+      {/* Form panel — scrolls independently so the brand panel stays fixed. */}
+      <div className="ng-auth-scroll" style={{ position: 'relative', background: 'var(--bg)', height: '100vh', overflowY: 'auto', display: 'flex', alignItems: 'safe center', justifyContent: 'center', padding: '48px 28px' }}>
         <button onClick={toggleTheme} title="Toggle theme" style={{ position: 'absolute', top: 22, right: 22, width: 40, height: 40, borderRadius: 11, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {dark ? (
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>

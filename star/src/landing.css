@@ -131,3 +131,27 @@ body {
 .ng-dropdown-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
 .ng-dropdown-list::-webkit-scrollbar-track { background: transparent; }
 .ng-dropdown-list { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+
+/* Auth form panel scrollbar — thin, rounded, brightens on hover. */
+.ng-auth-scroll::-webkit-scrollbar { width: 8px; }
+.ng-auth-scroll::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 999px; }
+.ng-auth-scroll::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+.ng-auth-scroll::-webkit-scrollbar-track { background: transparent; }
+.ng-auth-scroll { scrollbar-width: thin; scrollbar-color: var(--line2) transparent; }
+
+/* Invalid fields grab attention: a one-shot red glow-pulse plus a short shake.
+   Applied only while `animating` is on (set on a failed submit), so it replays
+   every attempt instead of firing once and going stale. */
+@keyframes ngErrorPulse {
+  0%   { box-shadow: 0 0 0 3px var(--dangerSoft), 0 0 0 0 var(--dangerSoft); }
+  50%  { box-shadow: 0 0 0 5px var(--dangerSoft), 0 0 12px 2px rgba(214, 69, 63, .28); }
+  100% { box-shadow: 0 0 0 3px var(--dangerSoft), 0 0 0 0 var(--dangerSoft); }
+}
+@keyframes ngErrorWiggle {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+.ng-error-pulse { animation: ngErrorPulse .5s ease-in-out 1, ngErrorWiggle .35s ease-in-out 1 !important; border-color: var(--danger) !important; }

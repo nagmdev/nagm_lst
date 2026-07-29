@@ -80,6 +80,10 @@ const AuthPage: React.FC = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  // Briefly true right after a failed submit — drives the one-shot shake/glow on
+  // every invalid field so a re-submit replays the effect instead of going stale.
+  const [animatingErrors, setAnimatingErrors] = useState(false);
+  const flashErrors = () => { setAnimatingErrors(true); setTimeout(() => setAnimatingErrors(false), 550); };
   const [remember, setRemember] = useState(true);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [showPwd, setShowPwd] = useState<Record<string, boolean>>({});
@@ -192,6 +196,7 @@ const AuthPage: React.FC = () => {
     setError(''); setSuccessMsg('');
     if (!isValid()) {
       if (authMode === 'signup' && !acceptTerms) setError('Please accept the Terms of Service to continue.');
+      flashErrors();
       return;
     }
     setBusy(true);
@@ -269,7 +274,7 @@ const AuthPage: React.FC = () => {
           autoComplete={opts?.autoComplete}
           onChange={(e) => handleChange(name, e.target.value)}
           onBlur={() => handleBlur(name)}
-          className="ng-auth-field"
+          className={`ng-auth-field ${animatingErrors && errors[name] && touched[name] ? 'ng-error-pulse' : ''}`}
           style={{
             width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
             border: `1px solid ${errors[name] && touched[name] ? 'var(--danger)' : 'var(--line)'}`,
@@ -312,7 +317,7 @@ const AuthPage: React.FC = () => {
           autoComplete={autoComplete}
           onChange={(e) => handleChange(name, e.target.value)}
           onBlur={() => handleBlur(name)}
-          className="ng-auth-field"
+          className={`ng-auth-field ${animatingErrors && errors[name] && touched[name] ? 'ng-error-pulse' : ''}`}
           style={{
             width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
             border: `1px solid ${errors[name] && touched[name] ? 'var(--danger)' : 'var(--line)'}`,
