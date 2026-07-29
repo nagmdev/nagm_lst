@@ -54,7 +54,17 @@ export async function handoffToApp(t: Tokens, rememberMe: boolean): Promise<void
  *  and only becomes HR when an admin approves it. */
 export type AccountRole = 'candidate' | 'recruiter' | 'company';
 
+export interface CompanyOption {
+  id: number;
+  name: string;
+  slug?: string | null;
+  verified?: boolean;
+  emailDomain?: string | null;
+}
+
 export interface RegisterPayload {
+  /** Set when the recruiter asked to join an existing company (id) at sign-up. */
+  joinCompanyId?: number;
   email: string;
   password: string;
   role?: AccountRole;
@@ -75,6 +85,14 @@ export interface RegisterPayload {
 export const authApi = {
   login: (email: string, password: string, rememberMe: boolean) =>
     api.post<Tokens>('/auth/login', { email, password, rememberMe }).then((r) => r.data),
+  /** Company directory for the sign-up picker ("which company do you work for?"). */
+  searchCompanies: (q: string, email?: string) =>
+    api
+      .get<{ companies: CompanyOption[]; suggestedByDomain: number[] }>('/workspace/companies', {
+        params: { q, ...(email ? { email } : {}) },
+      })
+      .then((r) => r.data)
+      .catch(() => ({ companies: [], suggestedByDomain: [] })),
   register: (payload: RegisterPayload) =>
     api
       .post<{ message: string; id: string; email: string; requestedRole?: 'recruiter' | 'company' | null }>(

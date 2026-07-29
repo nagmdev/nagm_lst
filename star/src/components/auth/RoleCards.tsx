@@ -7,10 +7,11 @@ interface Props {
   onSelect: (role: AccountRole) => void;
 }
 
+// People sign up, not organizations. A recruiter then joins an existing company
+// or creates one — which is what prevents duplicate company records.
 const ROLES: { key: AccountRole; label: string; hint: string; Icon: typeof User }[] = [
   { key: 'candidate', label: 'Candidate', hint: 'Find a job', Icon: User },
   { key: 'recruiter', label: 'Recruiter', hint: 'Hire talent', Icon: Briefcase },
-  { key: 'company', label: 'Company', hint: 'Build a team', Icon: Building2 },
 ];
 
 /**
