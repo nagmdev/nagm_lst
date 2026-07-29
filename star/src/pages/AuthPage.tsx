@@ -85,6 +85,8 @@ const AuthPage: React.FC = () => {
   const [animatingErrors, setAnimatingErrors] = useState(false);
   const flashErrors = () => { setAnimatingErrors(true); setTimeout(() => setAnimatingErrors(false), 550); };
   const [remember, setRemember] = useState(true);
+  // A recruiter is either hiring for a company or working independently.
+  const [recruiterType, setRecruiterType] = useState<'company' | 'independent'>('company');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [showPwd, setShowPwd] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -139,7 +141,9 @@ const AuthPage: React.FC = () => {
         break;
       // Phone is optional for a candidate but required for hiring accounts —
       // recruiters get called back on it.
-      case 'phone': err = phoneError(v, values.country, role !== 'candidate'); break;
+      // Phone is not validated at sign-up — the recruiter's number is assigned
+      // later — so anything typed here is accepted (still digits-only + capped).
+      case 'phone': err = ''; break;
       case 'linkedInProfile': err = v && !v.includes('linkedin.com') ? 'Enter a valid LinkedIn URL' : ''; break;
       case 'websiteUrl': err = v && !/^https?:\/\/.+\..+/.test(v) ? 'Invalid URL' : ''; break;
       case 'password': err = passwordIssue(values.password); break;
@@ -168,8 +172,14 @@ const AuthPage: React.FC = () => {
   const signupFields = (): string[] => {
     switch (role) {
       case 'candidate': return ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
-      case 'recruiter': return ['firstName', 'lastName', 'companyEmail', 'phone', 'jobTitle', ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []), 'linkedInProfile', 'password', 'confirmPassword'];
-      case 'company': return ['companyName', 'businessEmail', 'phone', 'password', 'confirmPassword'];
+      case 'recruiter': return [
+        'firstName', 'lastName',
+        ...(recruiterType === 'company' ? ['companyName'] : []),
+        'companyEmail', 'jobTitle',
+        ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []),
+        'linkedInProfile', 'password', 'confirmPassword',
+      ];
+      case 'company': return ['companyName', 'businessEmail', 'password', 'confirmPassword'];
     }
   };
 
@@ -211,12 +221,15 @@ const AuthPage: React.FC = () => {
       } else if (role === 'recruiter') {
         payload.firstName = values.firstName.trim();
         payload.lastName = values.lastName.trim();
-        payload.phone = normalizePhone(values.phone, values.country);
+        if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
         payload.jobTitle = (values.jobTitle === 'Other' ? values.jobTitleOther : values.jobTitle).trim();
         payload.linkedInProfile = values.linkedInProfile.trim();
+        // Company recruiters carry their company name (it creates/joins the
+        // company workspace); independents deliberately send none.
+        if (recruiterType === 'company') payload.companyName = values.companyName.trim();
       } else {
         payload.companyName = values.companyName.trim();
-        payload.phone = normalizePhone(values.phone, values.country);
+        if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
         payload.industry = values.industry;
         payload.companySize = values.companySize;
         if (values.websiteUrl.trim()) payload.websiteUrl = values.websiteUrl.trim();
@@ -361,7 +374,7 @@ const AuthPage: React.FC = () => {
   const countryPhoneRow = (phoneRequired: boolean) => (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
       {countrySelect()}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), required: phoneRequired, autoComplete: 'tel' })}
+      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), required: false, autoComplete: 'tel' })}
     </div>
   );
 
@@ -421,8 +434,40 @@ const AuthPage: React.FC = () => {
         {field('firstName', 'First Name', { autoComplete: 'given-name' })}
         {field('lastName', 'Last Name', { autoComplete: 'family-name' })}
       </div>
-      {field('companyEmail', 'Company Email', { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {countryPhoneRow(true)}
+      {/* A recruiter either works for a company or is independent (freelance). */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
+          Are you recruiting for a company? *
+        </label>
+        <div role="radiogroup" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {([['company', 'For a company', Building2], ['independent', 'Independent', Briefcase]] as const).map(([val, label, Icon]) => {
+            const active = recruiterType === val;
+            return (
+              <button
+                key={val}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setRecruiterType(val)}
+                className="ng-role-tab"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderRadius: 12,
+                  border: `1.5px solid ${active ? 'var(--brand)' : 'var(--line)'}`,
+                  background: active ? 'var(--brandSoft)' : 'var(--panel)',
+                  color: active ? 'var(--brandInk)' : 'var(--ink2)',
+                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+                  transition: 'border-color .15s, background .15s, color .15s',
+                }}
+              >
+                <Icon size={15} /> {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {recruiterType === 'company' && field('companyName', 'Company Name', { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
+      {field('companyEmail', recruiterType === 'company' ? 'Company Email' : 'Email', { type: 'email', placeholder: recruiterType === 'company' ? 'you@company.com' : 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
+      {countryPhoneRow(false)}
       <div style={{ marginBottom: 16 }}>
         <SelectDropdown
           value={values.jobTitle}
