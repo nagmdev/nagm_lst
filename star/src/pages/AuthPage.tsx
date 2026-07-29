@@ -357,6 +357,14 @@ const AuthPage: React.FC = () => {
     </div>
   );
 
+  // Country and phone sit side by side — the country's dial code frames the number.
+  const countryPhoneRow = (phoneRequired: boolean) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
+      {countrySelect()}
+      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), required: phoneRequired, autoComplete: 'tel' })}
+    </div>
+  );
+
   const terms = () => (
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', marginBottom: 16 }}>
       <span style={{ position: 'relative', width: 18, height: 18, flexShrink: 0 }}>
@@ -399,8 +407,7 @@ const AuthPage: React.FC = () => {
         {field('lastName', 'Last Name', { autoComplete: 'family-name', placeholder: 'Mansour' })}
       </div>
       {field('email', 'Email', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), required: false, autoComplete: 'tel' })}
-      {countrySelect()}
+      {countryPhoneRow(false)}
       {passwordField('password', 'Password', 'new-password')}
       {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
       {terms()}
@@ -415,7 +422,7 @@ const AuthPage: React.FC = () => {
         {field('lastName', 'Last Name', { autoComplete: 'family-name' })}
       </div>
       {field('companyEmail', 'Company Email', { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), autoComplete: 'tel' })}
+      {countryPhoneRow(true)}
       <div style={{ marginBottom: 16 }}>
         <SelectDropdown
           value={values.jobTitle}
@@ -431,7 +438,6 @@ const AuthPage: React.FC = () => {
       </div>
       {values.jobTitle === 'Other' && field('jobTitleOther', 'Please specify your job title', { placeholder: 'e.g. VP of Talent', icon: <Briefcase size={15} /> })}
       {field('linkedInProfile', 'LinkedIn Profile', { type: 'url', placeholder: 'https://linkedin.com/in/yourprofile', required: false, icon: <Globe size={15} /> })}
-      {countrySelect()}
       {passwordField('password', 'Password', 'new-password')}
       {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
       {terms()}
@@ -454,8 +460,7 @@ const AuthPage: React.FC = () => {
         />
       </div>
       {field('websiteUrl', 'Website', { type: 'url', placeholder: 'https://company.com', required: false, icon: <Globe size={15} /> })}
-      {countrySelect()}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), autoComplete: 'tel' })}
+      {countryPhoneRow(true)}
       {passwordField('password', 'Password', 'new-password')}
       {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
       {terms()}
