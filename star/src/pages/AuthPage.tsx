@@ -25,6 +25,22 @@ const COUNTRY_CODES: Record<string, string> = {
 const COUNTRY_OPTIONS = ['Egypt', 'Saudi Arabia', 'United Arab Emirates'];
 const DEFAULT_COUNTRY = 'Egypt';
 
+// Max mobile-number digits per country — the phone input is capped to this as
+// it's typed (e.g. Egypt = 11 digits).
+const COUNTRY_PHONE_MAX: Record<string, number> = {
+  Egypt: 11, 'Saudi Arabia': 9, 'United Arab Emirates': 9,
+};
+
+// Recruiter job titles — a scrollable dropdown, with "Other" revealing a
+// free-text "please specify" field.
+const JOB_TITLES = [
+  'Recruiter', 'Senior Recruiter', 'Technical Recruiter', 'Lead Recruiter',
+  'Recruitment Coordinator', 'Talent Sourcer', 'Talent Acquisition Specialist',
+  'Talent Acquisition Partner', 'Talent Acquisition Manager', 'HR Specialist',
+  'HR Generalist', 'HR Manager', 'HR Business Partner', 'Hiring Manager',
+  'Head of Talent Acquisition', 'HR Director', 'Other',
+];
+
 const PERSONAL_DOMAINS = [
   'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com',
   'icloud.com', 'mail.com', 'protonmail.com', 'aol.com', 'zoho.com',
@@ -73,7 +89,7 @@ const AuthPage: React.FC = () => {
   const [values, setValues] = useState<Record<string, string>>({
     firstName: '', lastName: '', email: '', companyEmail: '', businessEmail: '',
     phone: '', password: '', confirmPassword: '', country: DEFAULT_COUNTRY,
-    jobTitle: '', linkedInProfile: '', companyName: '', industry: '', companySize: '',
+    jobTitle: '', jobTitleOther: '', linkedInProfile: '', companyName: '', industry: '', companySize: '',
     websiteUrl: '',
   });
 
@@ -108,6 +124,7 @@ const AuthPage: React.FC = () => {
       case 'lastName': err = v ? '' : 'Last name is required'; break;
       case 'companyName': err = v ? '' : 'Company name is required'; break;
       case 'jobTitle': err = v ? '' : 'Job title is required'; break;
+      case 'jobTitleOther': err = values.jobTitle === 'Other' && !v ? 'Please specify your job title' : ''; break;
       case 'email': err = emailError(v); break;
       case 'companyEmail':
       case 'businessEmail':
@@ -131,6 +148,11 @@ const AuthPage: React.FC = () => {
   };
 
   const handleChange = (name: string, value: string) => {
+    // Cap the phone number to the selected country's digit count, digits only.
+    if (name === 'phone') {
+      const max = COUNTRY_PHONE_MAX[values.country] ?? 15;
+      value = value.replace(/\D/g, '').slice(0, max);
+    }
     setValues((p) => ({ ...p, [name]: value }));
     if (touched[name]) validateField(name, value);
   };
@@ -142,7 +164,7 @@ const AuthPage: React.FC = () => {
   const signupFields = (): string[] => {
     switch (role) {
       case 'candidate': return ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
-      case 'recruiter': return ['firstName', 'lastName', 'companyEmail', 'phone', 'jobTitle', 'linkedInProfile', 'password', 'confirmPassword'];
+      case 'recruiter': return ['firstName', 'lastName', 'companyEmail', 'phone', 'jobTitle', ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []), 'linkedInProfile', 'password', 'confirmPassword'];
       case 'company': return ['companyName', 'businessEmail', 'phone', 'password', 'confirmPassword'];
     }
   };
@@ -185,7 +207,7 @@ const AuthPage: React.FC = () => {
         payload.firstName = values.firstName.trim();
         payload.lastName = values.lastName.trim();
         payload.phone = normalizePhone(values.phone, values.country);
-        payload.jobTitle = values.jobTitle.trim();
+        payload.jobTitle = (values.jobTitle === 'Other' ? values.jobTitleOther : values.jobTitle).trim();
         payload.linkedInProfile = values.linkedInProfile.trim();
       } else {
         payload.companyName = values.companyName.trim();
@@ -389,7 +411,20 @@ const AuthPage: React.FC = () => {
       </div>
       {field('companyEmail', 'Company Email', { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
       {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), autoComplete: 'tel' })}
-      {field('jobTitle', 'Job Title', { placeholder: 'Talent Acquisition Specialist', icon: <Briefcase size={15} /> })}
+      <div style={{ marginBottom: 16 }}>
+        <SelectDropdown
+          value={values.jobTitle}
+          onChange={(v) => { handleChange('jobTitle', v); setTouched((p) => ({ ...p, jobTitle: true })); }}
+          options={JOB_TITLES}
+          placeholder="Select your job title"
+          label="Job Title"
+          required
+        />
+        {errors.jobTitle && touched.jobTitle && (
+          <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors.jobTitle}</div>
+        )}
+      </div>
+      {values.jobTitle === 'Other' && field('jobTitleOther', 'Please specify your job title', { placeholder: 'e.g. VP of Talent', icon: <Briefcase size={15} /> })}
       {field('linkedInProfile', 'LinkedIn Profile', { type: 'url', placeholder: 'https://linkedin.com/in/yourprofile', required: false, icon: <Globe size={15} /> })}
       {countrySelect()}
       {passwordField('password', 'Password', 'new-password')}
