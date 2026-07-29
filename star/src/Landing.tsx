@@ -52,7 +52,15 @@ const pricing = [
   { aud: 'Company', name: 'Business', price: 'Talk', per: '', featured: false, feats: ['Unlimited jobs & seats', 'Agency mode', 'Dedicated success'] },
 ];
 
-const navLinks = ['Product', 'For companies', 'Pricing', 'About'];
+// "Jobs" sits second, right after Product, and is a real link to the public
+// job listings — the rest are in-page sections for now.
+const navLinks: { label: string; href?: string }[] = [
+  { label: 'Product' },
+  { label: 'Jobs', href: 'https://app.nagm.io/jobs' },
+  { label: 'For companies' },
+  { label: 'Pricing' },
+  { label: 'About' },
+];
 
 const Mark = ({ size = 30 }: { size?: number }) => (
   <div style={{ width: size, height: size, borderRadius: size * 0.28, background: 'var(--grad)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: size * 0.5, flexShrink: 0 }}>N</div>
@@ -98,7 +106,13 @@ const Landing: React.FC = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} className="ng-topbar-search">
             {navLinks.map((l) => (
-              <a key={l} style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '8px 13px', borderRadius: 9, cursor: 'pointer' }}>{l}</a>
+              <a
+                key={l.label}
+                href={l.href}
+                style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '8px 13px', borderRadius: 9, cursor: 'pointer' }}
+              >
+                {l.label}
+              </a>
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
