@@ -4,7 +4,7 @@ import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowRight, Globe, Sear
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
-import { authApi, handoffToApp, apiError } from '../auth';
+import { authApi, handoffToApp, apiError, APP_ORIGIN } from '../auth';
 import type { AccountRole, RegisterPayload, CompanyOption } from '../auth';
 import { emailError, emailSuggestion, phoneError, phoneExample, normalizePhone } from '../utils/contact';
 
@@ -605,10 +605,21 @@ const AuthPage: React.FC = () => {
     <>
       {field('email', 'Email', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
       {passwordField('password', 'Password', 'current-password')}
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--ink2)', fontWeight: 500, marginBottom: 16, cursor: 'pointer' }}>
-        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--brand)' }} />
-        Keep me signed in for 30 days
-      </label>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }}>
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--brand)' }} />
+          Keep me signed in for 30 days
+        </label>
+        {/* Sign-in lives here now, so the reset flow has to be reachable here —
+            without this a locked-out user has no way back into their account.
+            The reset screens are served by the app. */}
+        <a
+          href={`${APP_ORIGIN}/forgot-password`}
+          style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--brandInk)', textDecoration: 'none' }}
+        >
+          Forgot your password?
+        </a>
+      </div>
     </>
   );
 
