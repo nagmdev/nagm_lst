@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowRight, Globe, Search } from 'lucide-react';
+import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowRight, Globe, Search, User } from 'lucide-react';
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
@@ -41,13 +41,6 @@ const JOB_TITLES = [
   'Head of Talent Acquisition', 'HR Director', 'Other',
 ];
 
-const PERSONAL_DOMAINS = [
-  'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com',
-  'icloud.com', 'mail.com', 'protonmail.com', 'aol.com', 'zoho.com',
-  'yandex.com', 'gmx.com', 'fastmail.com', 'tutanota.com',
-];
-
-
 /** Mirrors the backend policy: 8+ chars and at least 3 of the 4 character classes. */
 function passwordIssue(pw: string): string {
   if (!pw) return 'Password is required';
@@ -87,8 +80,9 @@ const AuthPage: React.FC = () => {
   const [animatingErrors, setAnimatingErrors] = useState(false);
   const flashErrors = () => { setAnimatingErrors(true); setTimeout(() => setAnimatingErrors(false), 550); };
   const [remember, setRemember] = useState(true);
-  // A recruiter either joins an existing company or creates a new one.
-  const [companyMode, setCompanyMode] = useState<'join' | 'create'>('join');
+  // A recruiter joins an existing company, creates a new one, or works
+  // independently (a freelance recruiter with no company yet).
+  const [companyMode, setCompanyMode] = useState<'join' | 'create' | 'independent'>('join');
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState<CompanyOption[]>([]);
   const [pickedCompany, setPickedCompany] = useState<CompanyOption | null>(null);
@@ -154,12 +148,12 @@ const AuthPage: React.FC = () => {
       // The join picker isn't a text field — validate the selection itself.
       case 'company': err = companyMode === 'join' && !pickedCompany ? 'Choose your company, or create a new one' : ''; break;
       case 'email': err = emailError(v); break;
+      // A recruiter's email may be a company address OR a personal one — a new
+      // company often has no domain email yet, and freelance recruiters use a
+      // personal address. So we only check the address is valid, not its domain.
       case 'companyEmail':
       case 'businessEmail':
         err = emailError(v);
-        if (!err && PERSONAL_DOMAINS.includes(v.split('@')[1]?.toLowerCase())) {
-          err = 'Please use your company email, not a personal address';
-        }
         break;
       // Phone is optional for a candidate but required for hiring accounts —
       // recruiters get called back on it.
@@ -196,7 +190,8 @@ const AuthPage: React.FC = () => {
       case 'candidate': return ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
       case 'recruiter': return [
         'firstName', 'lastName', 'companyEmail',
-        ...(companyMode === 'join' ? ['company'] : ['companyName']),
+        // Independent (freelancer) recruiters have no company to validate.
+        ...(companyMode === 'join' ? ['company'] : companyMode === 'create' ? ['companyName'] : []),
         'jobTitle',
         ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []),
         'linkedInProfile', 'password', 'confirmPassword',
@@ -247,11 +242,12 @@ const AuthPage: React.FC = () => {
         payload.jobTitle = (values.jobTitle === 'Other' ? values.jobTitleOther : values.jobTitle).trim();
         payload.linkedInProfile = values.linkedInProfile.trim();
         // Joining sends the chosen company's id (a request their admin approves);
-        // creating sends the new company's details and makes them its owner.
+        // creating sends the new company's details and makes them its owner;
+        // independent (freelancer) sends no company at all.
         if (companyMode === 'join' && pickedCompany) {
           payload.joinCompanyId = pickedCompany.id;
           payload.companyName = pickedCompany.name;
-        } else {
+        } else if (companyMode === 'create') {
           payload.companyName = values.companyName.trim();
           if (values.websiteUrl.trim()) payload.websiteUrl = values.websiteUrl.trim();
         }
@@ -462,15 +458,16 @@ const AuthPage: React.FC = () => {
         {field('firstName', 'First Name', { autoComplete: 'given-name' })}
         {field('lastName', 'Last Name', { autoComplete: 'family-name' })}
       </div>
-      {field('companyEmail', 'Work Email', { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
+      {field('companyEmail', 'Email', { type: 'email', placeholder: 'you@company.com or you@gmail.com', autoComplete: 'email', icon: <Mail size={15} /> })}
 
-      {/* A recruiter joins an existing company or creates one — never a duplicate. */}
+      {/* A recruiter joins an existing company, creates one (never a duplicate),
+          or works independently as a freelance recruiter with no company. */}
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
-          Your company *
+          Your company
         </label>
-        <div role="radiogroup" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-          {([['join', 'Join existing', Building2], ['create', 'Create new', Briefcase]] as const).map(([val, label, Icon]) => {
+        <div role="radiogroup" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+          {([['join', 'Join existing', Building2], ['create', 'Create new', Briefcase], ['independent', 'Independent', User]] as const).map(([val, label, Icon]) => {
             const active = companyMode === val;
             return (
               <button
@@ -548,12 +545,17 @@ const AuthPage: React.FC = () => {
               <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors.company}</div>
             )}
           </>
-        ) : (
+        ) : companyMode === 'create' ? (
           <>
             {field('companyName', 'Company Name', { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
             {field('websiteUrl', 'Company Website', { type: 'url', placeholder: 'https://company.com', required: false, icon: <Globe size={15} /> })}
             <p style={{ fontSize: 12, color: 'var(--ink3)', margin: 0 }}>You'll become the owner of this company on Nagm.</p>
           </>
+        ) : (
+          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>
+            You're signing up as an independent recruiter — no company needed. You can
+            create or join one later from your profile.
+          </p>
         )}
       </div>
       {countryPhoneRow(false)}
