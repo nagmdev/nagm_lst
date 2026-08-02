@@ -7,11 +7,14 @@ interface Props {
   onSelect: (role: AccountRole) => void;
 }
 
-// People sign up, not organizations. A recruiter then joins an existing company
-// or creates one — which is what prevents duplicate company records.
+// Three ways in. "Company" registers the organisation itself — that person
+// becomes its Company Manager; "Recruiter" is a person who joins an existing
+// company, creates one, or works independently. Either way the company record
+// is de-duplicated by slug/domain, so there is never a second "Sama Group".
 const ROLES: { key: AccountRole; label: string; hint: string; Icon: typeof User }[] = [
   { key: 'candidate', label: 'Candidate', hint: 'Find a job', Icon: User },
   { key: 'recruiter', label: 'Recruiter', hint: 'Hire talent', Icon: Briefcase },
+  { key: 'company', label: 'Company', hint: 'Register your company', Icon: Building2 },
 ];
 
 /**
