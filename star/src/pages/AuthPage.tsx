@@ -365,7 +365,7 @@ const AuthPage: React.FC = () => {
           }}
         />
         <button
-          type="button" tabIndex={-1} aria-label={showPwd[name] ? 'Hide password' : 'Show password'}
+          type="button" aria-label={showPwd[name] ? 'Hide password' : 'Show password'}
           onClick={() => togglePwd(name)}
           style={{
             position: 'absolute', top: 0, bottom: 0, right: 6, margin: 'auto', height: 30, width: 30,
@@ -496,7 +496,10 @@ const AuthPage: React.FC = () => {
           <>
             <div style={{ position: 'relative' }}>
               <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
+              <label htmlFor="company-search-input" className="sr-only">Search companies</label>
               <input
+                id="company-search-input"
+                aria-label="Search companies"
                 value={companyQuery}
                 onChange={(e) => { setCompanyQuery(e.target.value); setPickedCompany(null); }}
                 placeholder="Search companies — e.g. Microsoft"

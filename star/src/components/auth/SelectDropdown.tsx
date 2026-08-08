@@ -53,14 +53,21 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({ value, onChange, option
   const hasValue = !!value;
   const showList = open || closing;
 
+  const labelId = label ? `select-label-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined;
+  const buttonId = label ? `select-button-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined;
+
   return (
     <div ref={ref} style={{ position: 'relative', width: '100%', marginBottom: 0 }}>
       {label && (
-        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+        <label id={labelId} htmlFor={buttonId} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
           {label}{required !== false ? ' *' : ''}
         </label>
       )}
       <button
+        id={buttonId}
+        aria-labelledby={labelId}
+        aria-label={!label ? (placeholder || 'Select option') : undefined}
+        aria-expanded={open}
         type="button"
         onClick={handleToggle}
         style={{

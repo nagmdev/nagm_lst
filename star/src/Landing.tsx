@@ -54,12 +54,13 @@ const pricing = [
 
 // "Jobs" sits second, right after Product, and is a real link to the public
 // job listings — the rest are in-page sections for now.
-const navLinks: { label: string; href?: string }[] = [
-  { label: 'Product' },
+const navLinks: { label: string; href: string }[] = [
+  { label: 'Product', href: '#features' },
   { label: 'Jobs', href: 'https://app.nagm.io/jobs' },
-  { label: 'For companies' },
-  { label: 'Pricing' },
-  { label: 'About' },
+  { label: 'For companies', href: '#features' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'About', href: '#about' },
+  { label: 'Contact', href: '#contact' },
 ];
 
 const Mark = ({ size = 30 }: { size?: number }) => (
@@ -99,7 +100,7 @@ const Landing: React.FC = () => {
     <div style={{ background: 'var(--bg)', color: 'var(--ink)', minHeight: '100vh' }}>
       {/* Nav */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(16px)', background: 'var(--navbg)', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ ...container, height: 66, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ ...container, minHeight: 66, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Mark size={30} />
             <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>Nagm</span>
@@ -109,213 +110,215 @@ const Landing: React.FC = () => {
               <a
                 key={l.label}
                 href={l.href}
-                style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '8px 13px', borderRadius: 9, cursor: 'pointer' }}
+                style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '12px 13px', borderRadius: 9, cursor: 'pointer', minHeight: 48, display: 'inline-flex', alignItems: 'center' }}
               >
                 {l.label}
               </a>
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <button onClick={toggleTheme} title="Toggle theme" style={{ width: 38, height: 38, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme" style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {dark ? (
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
               ) : (
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
               )}
             </button>
-            <button onClick={goLogin} style={{ height: 38, padding: '0 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
-            <button onClick={goRegister} style={{ height: 38, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px var(--brandShadow)' }}>Get started</button>
+            <button onClick={goLogin} style={{ height: 48, minHeight: 48, padding: '0 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
+            <button onClick={goRegister} style={{ height: 48, minHeight: 48, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px var(--brandShadow)' }}>Get started</button>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section style={{ position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'var(--heroGlow)', pointerEvents: 'none' }} />
-        <div className="ng-dash-grid" style={{ ...container, position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 40, alignItems: 'center', padding: '72px 24px 84px' }}>
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 13px', borderRadius: 30, background: 'var(--brandSoft)', border: '1px solid var(--brandBorder)', fontSize: 13, fontWeight: 600, color: 'var(--brandInk)', marginBottom: 22 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)', boxShadow: '0 0 0 3px var(--brandSoft2)' }} />Arabic-first · AI-native hiring
-            </div>
-            <h1 style={{ fontSize: 54, lineHeight: 1.05, fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 20px' }}>
-              Build your CV. Apply. <span className="ng-grad-text">Get hired.</span>
-            </h1>
-            <p style={{ fontSize: 18, lineHeight: 1.6, color: 'var(--ink2)', margin: '0 0 30px', maxWidth: 480 }}>
-              Nagm turns the CV you build into structured data companies can hire from instantly — no PDF parsing. Arabic-first, WhatsApp-native, powered by AI at every step.
-            </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button onClick={goRegister} style={{ height: 50, padding: '0 24px', borderRadius: 13, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9, boxShadow: '0 6px 20px var(--brandShadow)' }}>
-                Build your CV — free
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
-              </button>
-              <button onClick={goRecruiter} style={{ height: 50, padding: '0 22px', borderRadius: 13, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" /></svg>Hire with Nagm
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 34, marginTop: 34 }}>
-              {heroStats.map((s) => (
-                <div key={s.label}>
-                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '-.02em' }}>{s.value}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Floating hero cards */}
-          <div style={{ position: 'relative', minHeight: 420 }} className="ng-topbar-search">
-            <div style={{ position: 'absolute', top: 30, right: 10, width: 330, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 20, boxShadow: 'var(--shadowLg)', padding: 20, animation: 'ngFloat 7s ease-in-out infinite' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15 }}>SM</div>
-                <div><div style={{ fontSize: 14.5, fontWeight: 700 }}>Sara Mansour</div><div style={{ fontSize: 12, color: 'var(--ink3)' }}>Software Engineer · Cairo</div></div>
-                <div style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--ok)', background: 'var(--okSoft)', padding: '3px 9px', borderRadius: 20 }}>ATS 92</div>
+      <main id="main-content">
+        {/* Hero */}
+        <section style={{ position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'var(--heroGlow)', pointerEvents: 'none' }} />
+          <div className="ng-dash-grid" style={{ ...container, position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 40, alignItems: 'center', padding: '72px 24px 84px' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 13px', borderRadius: 30, background: 'var(--brandSoft)', border: '1px solid var(--brandBorder)', fontSize: 13, fontWeight: 600, color: 'var(--brandInk)', marginBottom: 22 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)', boxShadow: '0 0 0 3px var(--brandSoft2)' }} />Arabic-first · AI-native hiring
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '90%' }} />
-                <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '75%' }} />
-                <div style={{ height: 9, borderRadius: 5, background: 'linear-gradient(90deg,var(--brand),transparent)', width: '60%' }} />
-                <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '82%' }} />
-                <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '50%' }} />
+              <h1 style={{ fontSize: 54, lineHeight: 1.05, fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 20px' }}>
+                Build your CV. Apply. <span className="ng-grad-text">Get hired.</span>
+              </h1>
+              <p style={{ fontSize: 18, lineHeight: 1.6, color: 'var(--ink2)', margin: '0 0 30px', maxWidth: 480 }}>
+                Nagm turns the CV you build into structured data companies can hire from instantly — no PDF parsing. Arabic-first, WhatsApp-native, powered by AI at every step.
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button onClick={goRegister} style={{ height: 50, padding: '0 24px', borderRadius: 13, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9, boxShadow: '0 6px 20px var(--brandShadow)' }}>
+                  Build your CV — free
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
+                </button>
+                <button onClick={goRecruiter} style={{ height: 50, padding: '0 22px', borderRadius: 13, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" /></svg>Hire with Nagm
+                </button>
               </div>
-              <div style={{ marginTop: 16, display: 'flex', gap: 7 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--brandInk)', background: 'var(--brandSoft)', padding: '4px 10px', borderRadius: 7 }}>React</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--brandInk)', background: 'var(--brandSoft)', padding: '4px 10px', borderRadius: 7 }}>Node.js</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', background: 'var(--hover)', padding: '4px 10px', borderRadius: 7 }}>+4</span>
-              </div>
-            </div>
-
-            <div style={{ position: 'absolute', bottom: 24, left: 0, width: 250, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 18, boxShadow: 'var(--shadowLg)', padding: 16, animation: 'ngFloat2 6s ease-in-out infinite' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spark /></div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>AI match</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ position: 'relative', width: 54, height: 54, flexShrink: 0 }}>
-                  <svg width="54" height="54" viewBox="0 0 54 54">
-                    <circle cx="27" cy="27" r="23" fill="none" stroke="var(--line2)" strokeWidth="6" />
-                    <circle cx="27" cy="27" r="23" fill="none" stroke="var(--brand)" strokeWidth="6" strokeLinecap="round" strokeDasharray="144.5" strokeDashoffset="16" transform="rotate(-90 27 27)" />
-                  </svg>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, fontFamily: "'IBM Plex Mono',monospace" }}>89</div>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.45 }}>Strong React + Arabic content match for this role</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Two sides */}
-      <section style={{ ...container, padding: '40px 24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 34 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--brandInk)', marginBottom: 10 }}>One platform, two sides</div>
-          <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-.02em', margin: 0 }}>Where talent and companies finally meet</h2>
-        </div>
-        <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 24 }}>
-          <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 22, padding: 30 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--brandSoft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand)', marginBottom: 18 }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 11l-3 3-1.5-1.5" /></svg>
-            </div>
-            <h3 style={{ fontSize: 23, fontWeight: 800, margin: '0 0 7px', letterSpacing: '-.01em' }}>For candidates</h3>
-            <p style={{ fontSize: 14.5, color: 'var(--ink2)', lineHeight: 1.55, margin: '0 0 18px' }}>A beautiful Arabic &amp; English CV builder, AI that writes with you, and a real path from CV to hired.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 22 }}>
-              {candBullets.map((b) => (<div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}><Check color="var(--brand)" />{b}</div>))}
-            </div>
-            <button onClick={goRegister} style={{ height: 44, padding: '0 20px', borderRadius: 11, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px var(--brandShadow)' }}>
-              Explore candidate app<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
-            </button>
-          </div>
-          <div style={{ background: 'var(--inkPanel)', border: '1px solid var(--inkPanelLine)', borderRadius: 22, padding: 30, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'var(--grad)', opacity: 0.16, filter: 'blur(30px)' }} />
-            <div style={{ width: 46, height: 46, borderRadius: 13, background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cyan)', marginBottom: 18, position: 'relative' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" /></svg>
-            </div>
-            <h3 style={{ fontSize: 23, fontWeight: 800, margin: '0 0 7px', letterSpacing: '-.01em', color: '#fff' }}>For companies &amp; recruiters</h3>
-            <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,.7)', lineHeight: 1.55, margin: '0 0 18px' }}>A full ATS with AI matching, structured candidate data, and WhatsApp-native outreach that stops candidates slipping away.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 22 }}>
-              {hrBullets.map((b) => (<div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'rgba(255,255,255,.92)' }}><Check color="var(--cyan)" />{b}</div>))}
-            </div>
-            <button onClick={goRegister} style={{ height: 44, padding: '0 20px', borderRadius: 11, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.1)', color: '#fff', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-              Explore recruiter app<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* AI moat */}
-      <section style={{ ...container, padding: '40px 24px' }}>
-        <div style={{ background: 'var(--inkPanel)', borderRadius: 28, padding: '46px 44px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -60, left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'var(--grad)', opacity: 0.18, filter: 'blur(60px)', pointerEvents: 'none' }} />
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px', borderRadius: 30, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.14)', fontSize: 12.5, fontWeight: 600, color: 'var(--cyan)', marginBottom: 18 }}><Spark fill="currentColor" />The AI moat</div>
-            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 10px', color: '#fff', maxWidth: 620 }}>The AI that actually understands Arabic CVs</h2>
-            <p style={{ fontSize: 15.5, color: 'rgba(255,255,255,.65)', lineHeight: 1.6, margin: '0 0 30px', maxWidth: 620 }}>Every candidate, resume and job is embedded with pgvector. A three-layer engine filters, scores, then explains — in Arabic or English.</p>
-            <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 18 }}>
-              {aiLayers.map((l) => (
-                <div key={l.tag} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 16, padding: 22 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 700, color: '#0B0E14', background: 'var(--cyan)', width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{l.tag}</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{l.title}</div>
+              <div style={{ display: 'flex', gap: 34, marginTop: 34 }}>
+                {heroStats.map((s) => (
+                  <div key={s.label}>
+                    <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '-.02em' }}>{s.value}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
                   </div>
-                  <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.62)', lineHeight: 1.5, margin: 0 }}>{l.desc}</p>
+                ))}
+              </div>
+            </div>
+
+            {/* Floating hero cards */}
+            <div style={{ position: 'relative', minHeight: 420 }} className="ng-topbar-search">
+              <div style={{ position: 'absolute', top: 30, right: 10, width: 330, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 20, boxShadow: 'var(--shadowLg)', padding: 20, animation: 'ngFloat 7s ease-in-out infinite' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15 }}>SM</div>
+                  <div><div style={{ fontSize: 14.5, fontWeight: 700 }}>Sara Mansour</div><div style={{ fontSize: 12, color: 'var(--ink3)' }}>Software Engineer · Cairo</div></div>
+                  <div style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--ok)', background: 'var(--okSoft)', padding: '3px 9px', borderRadius: 20 }}>ATS 92</div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Differentiators */}
-      <section style={{ ...container, padding: '40px 24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 30 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--brandInk)', marginBottom: 10 }}>Why Nagm wins</div>
-          <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.02em', margin: 0 }}>Built for MENA, not adapted for it</h2>
-        </div>
-        <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 18 }}>
-          {diffs.map((d) => (
-            <div key={d.title} style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 18, padding: 24 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--brandSoft)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15, fontSize: 20 }}>{d.icon}</div>
-              <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: '0 0 7px' }}>{d.title}</h3>
-              <p style={{ fontSize: 13.5, color: 'var(--ink2)', lineHeight: 1.55, margin: 0 }}>{d.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section style={{ ...container, padding: '40px 24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 30 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--brandInk)', marginBottom: 10 }}>Pricing</div>
-          <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.02em', margin: 0 }}>Free for talent. Scales for companies.</h2>
-        </div>
-        <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 18 }}>
-          {pricing.map((p) => (
-            <div key={p.name} style={{ background: p.featured ? 'var(--inkPanel)' : 'var(--panel)', border: `1px solid ${p.featured ? 'var(--brandBorder)' : 'var(--line)'}`, borderRadius: 18, padding: '26px 22px', position: 'relative', boxShadow: p.featured ? 'var(--shadowLg)' : 'none' }}>
-              {p.featured && <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#fff', background: 'var(--grad)', padding: '3px 9px', borderRadius: 20 }}>Popular</div>}
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: p.featured ? 'var(--cyan)' : 'var(--brandInk)', marginBottom: 12 }}>{p.aud}</div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: p.featured ? '#fff' : 'var(--ink)', marginBottom: 6 }}>{p.name}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 16 }}>
-                <span style={{ fontSize: 30, fontWeight: 800, color: p.featured ? '#fff' : 'var(--ink)', fontFamily: "'IBM Plex Mono',monospace" }}>{p.price}</span>
-                <span style={{ fontSize: 13, color: p.featured ? 'rgba(255,255,255,.5)' : 'var(--ink3)' }}>{p.per}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '90%' }} />
+                  <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '75%' }} />
+                  <div style={{ height: 9, borderRadius: 5, background: 'linear-gradient(90deg,var(--brand),transparent)', width: '60%' }} />
+                  <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '82%' }} />
+                  <div style={{ height: 9, borderRadius: 5, background: 'var(--line2)', width: '50%' }} />
+                </div>
+                <div style={{ marginTop: 16, display: 'flex', gap: 7 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--brandInk)', background: 'var(--brandSoft)', padding: '4px 10px', borderRadius: 7 }}>React</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--brandInk)', background: 'var(--brandSoft)', padding: '4px 10px', borderRadius: 7 }}>Node.js</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', background: 'var(--hover)', padding: '4px 10px', borderRadius: 7 }}>+4</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {p.feats.map((f) => (<div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: p.featured ? 'rgba(255,255,255,.85)' : 'var(--ink2)' }}><Check color={p.featured ? 'var(--cyan)' : 'var(--brand)'} />{f}</div>))}
+
+              <div style={{ position: 'absolute', bottom: 24, left: 0, width: 250, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 18, boxShadow: 'var(--shadowLg)', padding: 16, animation: 'ngFloat2 6s ease-in-out infinite' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spark /></div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>AI match</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ position: 'relative', width: 54, height: 54, flexShrink: 0 }}>
+                    <svg width="54" height="54" viewBox="0 0 54 54">
+                      <circle cx="27" cy="27" r="23" fill="none" stroke="var(--line2)" strokeWidth="6" />
+                      <circle cx="27" cy="27" r="23" fill="none" stroke="var(--brand)" strokeWidth="6" strokeLinecap="round" strokeDasharray="144.5" strokeDashoffset="16" transform="rotate(-90 27 27)" />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, fontFamily: "'IBM Plex Mono',monospace" }}>89</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.45 }}>Strong React + Arabic content match for this role</div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section style={{ ...container, padding: '40px 24px 60px' }}>
-        <div style={{ background: 'var(--grad)', borderRadius: 28, padding: '52px 44px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-          <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 12px', color: '#fff' }}>Tell your story right. With AI.</h2>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,.9)', margin: '0 0 26px' }}>Join 335+ candidates and 25 companies already hiring on Nagm.</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={goRegister} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: 'none', background: '#fff', color: 'var(--brandInk)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Build your CV — free</button>
-            <button onClick={goRecruiter} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: '1px solid rgba(255,255,255,.4)', background: 'rgba(255,255,255,.12)', color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer' }}>Hire with Nagm</button>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Two sides */}
+        <section id="features" style={{ ...container, padding: '40px 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 34 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--brandInk)', marginBottom: 10 }}>One platform, two sides</div>
+            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-.02em', margin: 0 }}>Where talent and companies finally meet</h2>
+          </div>
+          <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 24 }}>
+            <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 22, padding: 30 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--brandSoft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand)', marginBottom: 18 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 11l-3 3-1.5-1.5" /></svg>
+              </div>
+              <h3 style={{ fontSize: 23, fontWeight: 800, margin: '0 0 7px', letterSpacing: '-.01em' }}>For candidates</h3>
+              <p style={{ fontSize: 14.5, color: 'var(--ink2)', lineHeight: 1.55, margin: '0 0 18px' }}>A beautiful Arabic &amp; English CV builder, AI that writes with you, and a real path from CV to hired.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 22 }}>
+                {candBullets.map((b) => (<div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}><Check color="var(--brand)" />{b}</div>))}
+              </div>
+              <button onClick={goRegister} style={{ height: 44, padding: '0 20px', borderRadius: 11, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px var(--brandShadow)' }}>
+                Explore candidate app<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
+              </button>
+            </div>
+            <div style={{ background: 'var(--inkPanel)', border: '1px solid var(--inkPanelLine)', borderRadius: 22, padding: 30, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'var(--grad)', opacity: 0.16, filter: 'blur(30px)' }} />
+              <div style={{ width: 46, height: 46, borderRadius: 13, background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cyan)', marginBottom: 18, position: 'relative' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" /></svg>
+              </div>
+              <h3 style={{ fontSize: 23, fontWeight: 800, margin: '0 0 7px', letterSpacing: '-.01em', color: '#fff' }}>For companies &amp; recruiters</h3>
+              <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,.7)', lineHeight: 1.55, margin: '0 0 18px' }}>A full ATS with AI matching, structured candidate data, and WhatsApp-native outreach that stops candidates slipping away.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 22 }}>
+                {hrBullets.map((b) => (<div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'rgba(255,255,255,.92)' }}><Check color="var(--cyan)" />{b}</div>))}
+              </div>
+              <button onClick={goRegister} style={{ height: 44, padding: '0 20px', borderRadius: 11, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.1)', color: '#fff', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                Explore recruiter app<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* AI moat */}
+        <section style={{ ...container, padding: '40px 24px' }}>
+          <div style={{ background: 'var(--inkPanel)', borderRadius: 28, padding: '46px 44px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: -60, left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'var(--grad)', opacity: 0.18, filter: 'blur(60px)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px', borderRadius: 30, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.14)', fontSize: 12.5, fontWeight: 600, color: 'var(--cyan)', marginBottom: 18 }}><Spark fill="currentColor" />The AI moat</div>
+              <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 10px', color: '#fff', maxWidth: 620 }}>The AI that actually understands Arabic CVs</h2>
+              <p style={{ fontSize: 15.5, color: 'rgba(255,255,255,.65)', lineHeight: 1.6, margin: '0 0 30px', maxWidth: 620 }}>Every candidate, resume and job is embedded with pgvector. A three-layer engine filters, scores, then explains — in Arabic or English.</p>
+              <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 18 }}>
+                {aiLayers.map((l) => (
+                  <div key={l.tag} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 16, padding: 22 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 700, color: '#0B0E14', background: 'var(--cyan)', width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{l.tag}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{l.title}</div>
+                    </div>
+                    <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.62)', lineHeight: 1.5, margin: 0 }}>{l.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Differentiators */}
+        <section id="about" style={{ ...container, padding: '40px 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 30 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--brandInk)', marginBottom: 10 }}>Why Nagm wins</div>
+            <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.02em', margin: 0 }}>Built for MENA, not adapted for it</h2>
+          </div>
+          <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 18 }}>
+            {diffs.map((d) => (
+              <div key={d.title} style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 18, padding: 24 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--brandSoft)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15, fontSize: 20 }}>{d.icon}</div>
+                <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: '0 0 7px' }}>{d.title}</h3>
+                <p style={{ fontSize: 13.5, color: 'var(--ink2)', lineHeight: 1.55, margin: 0 }}>{d.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Pricing */}
+        <section id="pricing" style={{ ...container, padding: '40px 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 30 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--brandInk)', marginBottom: 10 }}>Pricing</div>
+            <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.02em', margin: 0 }}>Free for talent. Scales for companies.</h2>
+          </div>
+          <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 18 }}>
+            {pricing.map((p) => (
+              <div key={p.name} style={{ background: p.featured ? 'var(--inkPanel)' : 'var(--panel)', border: `1px solid ${p.featured ? 'var(--brandBorder)' : 'var(--line)'}`, borderRadius: 18, padding: '26px 22px', position: 'relative', boxShadow: p.featured ? 'var(--shadowLg)' : 'none' }}>
+                {p.featured && <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#fff', background: 'var(--grad)', padding: '3px 9px', borderRadius: 20 }}>Popular</div>}
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: p.featured ? 'var(--cyan)' : 'var(--brandInk)', marginBottom: 12 }}>{p.aud}</div>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: p.featured ? '#fff' : 'var(--ink)', margin: 0, marginBottom: 6 }}>{p.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 16 }}>
+                  <span style={{ fontSize: 30, fontWeight: 800, color: p.featured ? '#fff' : 'var(--ink)', fontFamily: "'IBM Plex Mono',monospace" }}>{p.price}</span>
+                  <span style={{ fontSize: 13, color: p.featured ? 'rgba(255,255,255,.5)' : 'var(--ink3)' }}>{p.per}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {p.feats.map((f) => (<div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: p.featured ? 'rgba(255,255,255,.85)' : 'var(--ink2)' }}><Check color={p.featured ? 'var(--cyan)' : 'var(--brand)'} />{f}</div>))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section id="contact" style={{ ...container, padding: '40px 24px 60px' }}>
+          <div style={{ background: 'var(--grad)', borderRadius: 28, padding: '52px 44px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+            <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 12px', color: '#fff' }}>Tell your story right. With AI.</h2>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,.9)', margin: '0 0 26px' }}>Join 335+ candidates and 25 companies already hiring on Nagm.</p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button onClick={goRegister} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: 'none', background: '#fff', color: 'var(--brandInk)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Build your CV — free</button>
+              <button onClick={goRecruiter} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: '1px solid rgba(255,255,255,.4)', background: 'rgba(255,255,255,.12)', color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer' }}>Hire with Nagm</button>
+            </div>
+          </div>
+        </section>
+      </main>
 
       {/* Footer */}
       <footer style={{ borderTop: '1px solid var(--line)' }}>

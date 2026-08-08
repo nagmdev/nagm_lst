@@ -68,8 +68,8 @@ const Verify: React.FC = () => {
     <AuthShell title="Enter your code" subtitle={`We sent a 6-digit code to ${email}.`}>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label>Verification code</label>
-          <input inputMode="numeric" autoFocus required value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" style={{ letterSpacing: '.3em', textAlign: 'center', fontSize: 18, fontWeight: 700 }} />
+          <label htmlFor="verification-code-input">Verification code</label>
+          <input id="verification-code-input" inputMode="numeric" autoFocus required value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" style={{ letterSpacing: '.3em', textAlign: 'center', fontSize: 18, fontWeight: 700 }} />
         </div>
         {msg && <div style={{ fontSize: 13.5, color: 'var(--ok, #1F9D57)', background: 'var(--okSoft, #E5F5EC)', padding: '10px 12px', borderRadius: 10 }}>{msg}</div>}
         {err && <div style={{ fontSize: 13.5, color: 'var(--danger, #D6453F)', background: 'var(--dangerSoft, #FCEAE9)', padding: '10px 12px', borderRadius: 10 }}>{err}</div>}

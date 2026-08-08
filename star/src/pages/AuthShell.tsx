@@ -36,8 +36,8 @@ const AuthShell: React.FC<{ title: string; subtitle: string; children: React.Rea
       </div>
 
       {/* Form panel — scrolls independently so the brand panel stays fixed. */}
-      <div className="ng-auth-scroll" style={{ position: 'relative', background: 'var(--bg)', height: '100vh', overflowY: 'auto', display: 'flex', alignItems: 'safe center', justifyContent: 'center', padding: '48px 28px' }}>
-        <button onClick={toggleTheme} title="Toggle theme" style={{ position: 'absolute', top: 22, right: 22, width: 40, height: 40, borderRadius: 11, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <main id="main-content" className="ng-auth-scroll" style={{ position: 'relative', background: 'var(--bg)', height: '100vh', overflowY: 'auto', display: 'flex', alignItems: 'safe center', justifyContent: 'center', padding: '48px 28px' }}>
+        <button onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme" style={{ position: 'absolute', top: 22, right: 22, width: 48, height: 48, minWidth: 48, minHeight: 48, borderRadius: 11, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {dark ? (
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
           ) : (
@@ -45,6 +45,7 @@ const AuthShell: React.FC<{ title: string; subtitle: string; children: React.Rea
           )}
         </button>
         <div style={{ width: '100%', maxWidth: 400 }}>
+          <h1 className="sr-only">Nagm — Arabic-first, AI-native hiring</h1>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 30, background: 'var(--brandSoft)', border: '1px solid var(--brandBorder)', fontSize: 12.5, fontWeight: 600, color: 'var(--brandInk)', marginBottom: 18 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             Secure OTP sign-in
@@ -54,7 +55,7 @@ const AuthShell: React.FC<{ title: string; subtitle: string; children: React.Rea
           {children}
           {footer && <div style={{ marginTop: 22, fontSize: 13.5, color: 'var(--ink2)', textAlign: 'center' }}>{footer}</div>}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

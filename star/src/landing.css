@@ -12,14 +12,14 @@
   --hover: #F2F3F5;
   --ink: #0E1525;
   --ink2: #586173;
-  --ink3: #9098A6;
+  --ink3: #4A5568;
   --brand: #6D5BF5;
   --brandInk: #5A47E0;
   --brandSoft: #EEEBFE;
   --brandSoft2: rgba(109, 91, 245, .18);
   --brandBorder: #E0DAFC;
   --brandShadow: rgba(109, 91, 245, .32);
-  --cyan: #11B6D4;
+  --cyan: #0891B2;
   --grad: linear-gradient(120deg, #15C7E0, #6D5BF5 55%, #A23DEA);
   --ok: #1F9D57;
   --okSoft: #E5F5EC;
@@ -45,7 +45,7 @@
   --hover: #171C28;
   --ink: #EAEEF5;
   --ink2: #9BA6B8;
-  --ink3: #646E80;
+  --ink3: #94A3B8;
   --brand: #8B7BFF;
   --brandInk: #A99BFF;
   --brandSoft: #191832;
@@ -66,6 +66,28 @@
   --shadowLg: 0 20px 56px rgba(0, 0, 0, .6);
   --heroGlow: radial-gradient(900px 420px at 78% 8%, rgba(123, 107, 255, .16), transparent 60%),
     radial-gradient(700px 380px at 95% 40%, rgba(44, 212, 236, .10), transparent 60%);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+.focus\:not-sr-only:focus {
+  position: absolute;
+  width: auto;
+  height: auto;
+  padding: 0.5rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }
 
 * { box-sizing: border-box; }
