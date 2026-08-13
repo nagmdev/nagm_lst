@@ -63,11 +63,15 @@ const AuthPage: React.FC = () => {
 
   const initialMode: AuthMode = location.pathname === '/login' ? 'login' : 'signup';
   const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
-  const preset = (location.state as { role?: AccountRole } | null)?.role;
-  // "company" is no longer an account type — organizations aren't users. A link
-  // still asking for it means "I'm hiring", so send them to the recruiter form.
+  // Sign-up has three entities — Candidate | Recruiter | Company — and "Company"
+  // is a real one: it registers the organisation and that person becomes its
+  // Company Manager. A previous change mapped `company` onto `recruiter` here,
+  // so every "Register your company" link quietly landed on the wrong form.
+  const preset =
+    (location.state as { role?: AccountRole } | null)?.role ??
+    (location.pathname === '/register/company' ? 'company' : undefined);
   const [role, setRole] = useState<AccountRole>(
-    preset === 'recruiter' || preset === 'company' ? 'recruiter' : 'candidate',
+    preset === 'recruiter' || preset === 'company' ? preset : 'candidate',
   );
 
   const [transitioning, setTransitioning] = useState(false);
@@ -433,7 +437,14 @@ const AuthPage: React.FC = () => {
       fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.45,
     }}>
       <Check size={15} style={{ color: 'var(--brand)', flexShrink: 0, marginTop: 1 }} />
-      <span>A Nagm admin reviews hiring accounts before they can access candidate profiles. You can sign in as soon as your email is verified.</span>
+      {/* There is no human review step any more — a company goes live the moment
+          it registers. Promising an approval that never comes left people
+          waiting for an email that was never going to arrive. */}
+      <span>
+        {role === 'company'
+          ? 'Your company goes live as soon as you verify your email — nothing waits for approval. You will then add your commercial registration, tax card and company details before posting jobs.'
+          : 'Verify your email and you are in. To see candidate profiles you will join a company, or create one, on the next step.'}
+      </span>
     </div>
   );
 

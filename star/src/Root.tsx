@@ -13,6 +13,15 @@ export default function Root() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
+        {/* Aliases. Every other spelling fell through to the catch-all and
+            bounced the visitor to the landing page with no explanation, which
+            reads as "there is nowhere to go". */}
+        <Route path="/signup" element={<Navigate to="/register" replace />} />
+        <Route path="/sign-up" element={<Navigate to="/register" replace />} />
+        <Route path="/signin" element={<Navigate to="/login" replace />} />
+        <Route path="/sign-in" element={<Navigate to="/login" replace />} />
+        {/* Deep link straight to the company form, for "Register your company" CTAs. */}
+        <Route path="/register/company" element={<AuthPage />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
