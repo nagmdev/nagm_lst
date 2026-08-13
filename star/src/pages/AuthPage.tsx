@@ -551,7 +551,6 @@ const AuthPage: React.FC = () => {
         ) : companyMode === 'create' ? (
           <>
             {field('companyName', 'Company Name', { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
-            {field('websiteUrl', 'Company Website', { type: 'url', placeholder: 'https://company.com', required: false, icon: <Globe size={15} /> })}
             <p style={{ fontSize: 12, color: 'var(--ink3)', margin: 0 }}>You'll become the owner of this company on Nagm.</p>
           </>
         ) : (
@@ -588,17 +587,6 @@ const AuthPage: React.FC = () => {
       {approvalNote()}
       {field('companyName', 'Company Name', { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
       {field('businessEmail', 'Business Email', { type: 'email', placeholder: 'hello@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <SelectDropdown
-          value={values.industry} onChange={(v) => handleChange('industry', v)}
-          options={INDUSTRIES} placeholder="Select Industry" label="Industry" required={false}
-        />
-        <SelectDropdown
-          value={values.companySize} onChange={(v) => handleChange('companySize', v)}
-          options={COMPANY_SIZES} placeholder="Select Size" label="Company Size" required={false}
-        />
-      </div>
-      {field('websiteUrl', 'Website', { type: 'url', placeholder: 'https://company.com', required: false, icon: <Globe size={15} /> })}
       {countryPhoneRow(true)}
       {passwordField('password', 'Password', 'new-password')}
       {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
