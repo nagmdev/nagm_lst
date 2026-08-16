@@ -103,6 +103,12 @@ export const authApi = {
   verifyEmail: (email: string, otp: string) =>
     api.post<{ message: string }>('/auth/verify-email', { email, otp }).then((r) => r.data),
   resend: (email: string) => api.post('/auth/resend-verification', { email }).then((r) => r.data),
+  requestPasswordReset: (email: string) =>
+    api.post<{ message: string }>('/auth/request-password-reset', { email }).then((r) => r.data),
+  verifyPasswordResetOtp: (email: string, otp: string) =>
+    api.post<{ message: string }>('/auth/verify-password-reset-otp', { email, otp }).then((r) => r.data),
+  resetPasswordWithOtp: (email: string, otp: string, newPassword: string) =>
+    api.post<{ message: string }>('/auth/reset-password-with-otp', { email, otp, newPassword }).then((r) => r.data),
 };
 
 export function apiError(err: unknown, fallback = 'Something went wrong. Please try again.'): string {

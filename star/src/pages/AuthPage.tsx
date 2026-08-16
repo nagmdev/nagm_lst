@@ -95,6 +95,16 @@ const AuthPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  // Forgot password flow
+  const [forgotMode, setForgotMode] = useState<'none' | 'request' | 'reset'>('none');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotErr, setForgotErr] = useState('');
+  const [forgotBusy, setForgotBusy] = useState(false);
+
   const [values, setValues] = useState<Record<string, string>>({
     firstName: '', lastName: '', email: '', companyEmail: '', businessEmail: '',
     phone: '', password: '', confirmPassword: '', country: DEFAULT_COUNTRY,
@@ -605,25 +615,190 @@ const AuthPage: React.FC = () => {
     </>
   );
 
+  const handleRequestReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotErr('');
+    setForgotMsg('');
+    const em = forgotEmail.trim();
+    if (!em || emailError(em)) {
+      setForgotErr('Please enter a valid email address');
+      return;
+    }
+    try {
+      setForgotBusy(true);
+      await authApi.requestPasswordReset(em);
+      setForgotMsg(`A 6-digit reset code was sent to ${em}`);
+      setForgotMode('reset');
+    } catch (err: any) {
+      setForgotErr(apiError(err, 'Failed to send reset code. Please try again.'));
+    } finally {
+      setForgotBusy(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotErr('');
+    setForgotMsg('');
+    if (!forgotOtp.trim()) {
+      setForgotErr('Please enter the 6-digit code');
+      return;
+    }
+    const pwIssue = passwordIssue(newPassword);
+    if (pwIssue) {
+      setForgotErr(pwIssue);
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setForgotErr('Passwords do not match');
+      return;
+    }
+    try {
+      setForgotBusy(true);
+      await authApi.resetPasswordWithOtp(forgotEmail.trim(), forgotOtp.trim(), newPassword);
+      setForgotMode('none');
+      setSuccessMsg('Password reset successfully! Please sign in with your new password.');
+      setValues((v) => ({ ...v, email: forgotEmail.trim() }));
+    } catch (err: any) {
+      setForgotErr(apiError(err, 'Failed to reset password. Please try again.'));
+    } finally {
+      setForgotBusy(false);
+    }
+  };
+
+  const forgotForm = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {forgotMode === 'request' ? (
+        <>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Your email address</label>
+            <input
+              type="email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="ng-auth-field"
+              style={{
+                width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
+                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
+              }}
+            />
+          </div>
+          {forgotErr && <div style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotErr}</div>}
+          <button
+            type="button"
+            onClick={handleRequestReset}
+            disabled={forgotBusy}
+            style={{
+              width: '100%', height: 46, borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff',
+              fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: forgotBusy ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {forgotBusy ? 'Sending code…' : 'Send reset code'}
+          </button>
+        </>
+      ) : (
+        <>
+          {forgotMsg && <div style={{ fontSize: 13.5, color: 'var(--ok)', background: 'var(--okSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotMsg}</div>}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>6-digit verification code</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={forgotOtp}
+              onChange={(e) => setForgotOtp(e.target.value)}
+              placeholder="123456"
+              required
+              className="ng-auth-field"
+              style={{
+                width: '100%', height: 46, borderRadius: 12, fontSize: 16, fontWeight: 700, letterSpacing: '.2em', textAlign: 'center', fontFamily: 'inherit',
+                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>New password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              required
+              className="ng-auth-field"
+              style={{
+                width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
+                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Confirm new password</label>
+            <input
+              type="password"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
+              placeholder="Re-enter password"
+              required
+              className="ng-auth-field"
+              style={{
+                width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
+                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
+              }}
+            />
+          </div>
+          {forgotErr && <div style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotErr}</div>}
+          <button
+            type="button"
+            onClick={handleResetPassword}
+            disabled={forgotBusy}
+            style={{
+              width: '100%', height: 46, borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff',
+              fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: forgotBusy ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {forgotBusy ? 'Resetting…' : 'Reset password & sign in'}
+          </button>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => { setForgotMode('none'); setForgotErr(''); setForgotMsg(''); }}
+        style={{ background: 'none', border: 'none', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center', marginTop: 4 }}
+      >
+        ← Back to sign in
+      </button>
+    </div>
+  );
+
   const loginForm = () => (
     <>
-      {field('email', 'Email', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {passwordField('password', 'Password', 'current-password')}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }}>
-          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--brand)' }} />
-          Keep me signed in for 30 days
-        </label>
-        {/* Sign-in lives here now, so the reset flow has to be reachable here —
-            without this a locked-out user has no way back into their account.
-            The reset screens are served by the app. */}
-        <a
-          href={`${APP_ORIGIN}/forgot-password`}
-          style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--brandInk)', textDecoration: 'none' }}
-        >
-          Forgot your password?
-        </a>
-      </div>
+      {forgotMode !== 'none' ? (
+        forgotForm()
+      ) : (
+        <>
+          {field('email', 'Email', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
+          {passwordField('password', 'Password', 'current-password')}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }}>
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--brand)' }} />
+              Keep me signed in for 30 days
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setForgotEmail(values.email || '');
+                setForgotErr('');
+                setForgotMsg('');
+                setForgotMode('request');
+              }}
+              style={{ background: 'none', border: 'none', padding: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--brandInk)', textDecoration: 'none', cursor: 'pointer' }}
+            >
+              Forgot your password?
+            </button>
+          </div>
+        </>
+      )}
     </>
   );
 

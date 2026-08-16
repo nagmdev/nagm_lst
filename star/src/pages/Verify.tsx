@@ -75,7 +75,10 @@ const Verify: React.FC = () => {
         {err && <div style={{ fontSize: 13.5, color: 'var(--danger, #D6453F)', background: 'var(--dangerSoft, #FCEAE9)', padding: '10px 12px', borderRadius: 10 }}>{err}</div>}
         <button type="submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify & continue'}</button>
       </form>
-      <button onClick={resend} disabled={resending} style={{ marginTop: 16, width: '100%', background: 'none', border: 'none', color: 'var(--brandInk)', fontWeight: 600, fontSize: 13.5, cursor: resending ? 'default' : 'pointer', opacity: resending ? 0.6 : 1 }}>{resending ? 'Sending…' : 'Resend code'}</button>
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+        <button type="button" onClick={resend} disabled={resending} style={{ width: '100%', background: 'none', border: 'none', color: 'var(--brandInk)', fontWeight: 600, fontSize: 13.5, cursor: resending ? 'default' : 'pointer', opacity: resending ? 0.6 : 1 }}>{resending ? 'Sending…' : 'Resend code'}</button>
+        <button type="button" onClick={() => navigate('/register')} style={{ background: 'none', border: 'none', color: 'var(--ink2)', fontWeight: 500, fontSize: 13, cursor: 'pointer', padding: '4px 8px' }}>← Back to sign up / Change email</button>
+      </div>
     </AuthShell>
   );
 };
