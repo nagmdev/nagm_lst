@@ -66,6 +66,19 @@ const Verify: React.FC = () => {
 
   return (
     <AuthShell title="Enter your code" subtitle={`We sent a 6-digit code to ${email}.`}>
+      <div style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/register'))}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none',
+            border: 'none', color: 'var(--ink2)', fontWeight: 600, fontSize: 13.5,
+            cursor: 'pointer', padding: 0,
+          }}
+        >
+          ← Back
+        </button>
+      </div>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label htmlFor="verification-code-input">Verification code</label>
