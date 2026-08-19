@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { MegaMenu } from './components/MegaMenu';
 import './landing.css';
 
 /**
@@ -11,23 +12,24 @@ import './landing.css';
 const ARROW = 'M5 12h14M13 6l6 6-6 6';
 
 const heroStats = [
-  { value: '335+', label: 'active candidates' },
-  { value: '25', label: 'companies hiring' },
-  { value: 'WhatsApp', label: 'apply & alerts' },
+  { value: '667+', label: 'active candidates' },
+  { value: '53', label: 'created jobs' },
+  { value: '245+', label: 'AI scans' },
+  { value: '10', label: 'companies' },
 ];
 
 const candBullets = [
   'Arabic RTL & English templates + PDF export',
   'AI writes, improves & tailors your CV to a job',
   'Instant ATS score & job recommendations',
-  'Track applications with WhatsApp alerts',
+  'Track applications with real-time status alerts',
 ];
 
 const hrBullets = [
-  'Kanban hiring pipeline with scorecards',
-  '“You have N matching candidates” + why',
-  'Structured data — instant filtering, no PDFs',
-  'WhatsApp outreach & interview scheduling',
+  '9-Stage Kanban hiring pipeline with scorecards',
+  '6D semantic matching (skills, tenure & vectors)',
+  'Candidate Rediscovery — 1-click recycling at zero cost',
+  'Enterprise KYB automated Commercial Registration verification',
 ];
 
 const aiLayers = [
@@ -38,29 +40,18 @@ const aiLayers = [
 
 const diffs = [
   { icon: '🇪🇬', title: 'True Arabic RTL', desc: 'Arabic-quality templates & AI — exactly where rivals are weak.' },
-  { icon: '💬', title: 'WhatsApp-native', desc: 'Apply, alerts, scheduling & offers via Addme infrastructure.' },
+  { icon: '💬', title: 'WhatsApp-native', desc: 'Apply, alerts, scheduling & offers via conversational intake.' },
   { icon: '🧩', title: 'Structured data', desc: 'Every CV is filterable data — no PDF parsing, ever.' },
-  { icon: '🔁', title: 'Managed hiring cycle', desc: 'Track & reduce candidate drop-off after the match.' },
-  { icon: '✅', title: 'Verified employer', desc: 'Fight scam job posts — a real MENA problem.' },
-  { icon: '📊', title: 'Salary intelligence', desc: 'Salary signals from real platform data.' },
+  { icon: '🔁', title: 'Candidate Rediscovery', desc: '1-click zero-cost re-indexing of past applicant pools.' },
+  { icon: '✅', title: 'Verified employer', desc: 'Automated OCR for Commercial Registration & Tax Card validation.' },
+  { icon: '📊', title: 'Salary intelligence', desc: 'Salary signals from real regional platform data.' },
 ];
 
 const pricing = [
   { aud: 'Candidate', name: 'Free', price: '$0', per: '', featured: false, feats: ['1 template + watermark', 'Basic ATS score', 'Apply to jobs'] },
   { aud: 'Candidate', name: 'Pro', price: '$5', per: '/mo', featured: true, feats: ['All templates · no watermark', 'Full AI quota', 'Public CV link'] },
-  { aud: 'Company', name: 'Growth', price: '$79', per: '/mo', featured: false, feats: ['Up to 10 active jobs', 'ATS pipeline', 'AI matching'] },
-  { aud: 'Company', name: 'Business', price: 'Talk', per: '', featured: false, feats: ['Unlimited jobs & seats', 'Agency mode', 'Dedicated success'] },
-];
-
-// "Jobs" sits second, right after Product, and is a real link to the public
-// job listings — the rest are in-page sections for now.
-const navLinks: { label: string; href: string }[] = [
-  { label: 'Product', href: '#features' },
-  { label: 'Jobs', href: 'https://app.nagm.io/jobs' },
-  { label: 'For companies', href: '#features' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'About', href: '#about' },
-  { label: 'Contact', href: '#contact' },
+  { aud: 'Company', name: 'Annual Pro', price: '$120', per: '/mo ($1,440/yr)', featured: true, feats: ['Unlimited candidate search', 'Full 9-Stage ATS pipeline', '6D AI vector matching', 'Automated KYB verification', 'Team workspaces & roles'] },
+  { aud: 'Company', name: 'Enterprise', price: 'Custom', per: '', featured: false, feats: ['Unlimited jobs & seats', 'Agency multi-pipeline mode', 'Dedicated success & SLA', 'KSA / UAE data residency'] },
 ];
 
 const Mark = ({ size = 30 }: { size?: number }) => (
@@ -98,34 +89,47 @@ const Landing: React.FC = () => {
 
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--ink)', minHeight: '100vh' }}>
-      {/* Nav */}
+      {/* Nav with Breezy-Style MegaMenu */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(16px)', background: 'var(--navbg)', borderBottom: '1px solid var(--line)' }}>
         <div style={{ ...container, minHeight: 66, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('/')}>
             <Mark size={30} />
             <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>Nagm</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} className="ng-topbar-search">
-            {navLinks.map((l) => (
-              <a
-                key={l.label}
-                href={l.href}
-                style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '12px 13px', borderRadius: 9, cursor: 'pointer', minHeight: 48, display: 'inline-flex', alignItems: 'center' }}
-              >
-                {l.label}
-              </a>
-            ))}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} className="ng-topbar-search">
+            <MegaMenu />
+            <a
+              href="https://app.nagm.io/jobs"
+              style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
+            >
+              Jobs
+            </a>
+            <a
+              href="#pricing"
+              style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
+            >
+              Pricing
+            </a>
+            <Link
+              to="/about"
+              style={{ fontSize: 14, fontWeight: 600, color: '#6366F1', textDecoration: 'none', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', minHeight: 44, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <span>About</span>
+              <span style={{ fontSize: 10, padding: '2px 5px', borderRadius: 4, background: 'rgba(99, 102, 241, 0.12)' }}>Tour</span>
+            </Link>
           </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <button onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme" style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {dark ? (
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
               ) : (
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
               )}
             </button>
-            <button onClick={goLogin} style={{ height: 48, minHeight: 48, padding: '0 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
-            <button onClick={goRegister} style={{ height: 48, minHeight: 48, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px var(--brandShadow)' }}>Get started</button>
+            <button onClick={goLogin} style={{ height: 44, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
+            <button onClick={goRegister} style={{ height: 44, minHeight: 44, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px var(--brandShadow)' }}>Get started</button>
           </div>
         </div>
       </nav>

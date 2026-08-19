@@ -177,3 +177,227 @@ body {
   80% { transform: translateX(2px); }
 }
 .ng-error-pulse { animation: ngErrorPulse .5s ease-in-out 1, ngErrorWiggle .35s ease-in-out 1 !important; border-color: var(--danger) !important; }
+
+/* ==========================================================================
+   Mega-Menu SaaS Navigation Styles (Breezy-style multi-column layout)
+   ========================================================================== */
+
+.ng-nav-dropdown-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ng-nav-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink2);
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  transition: all 0.15s ease;
+}
+
+.ng-nav-btn:hover,
+.ng-nav-btn.active {
+  color: var(--ink);
+  background: var(--panel);
+}
+
+.ng-chevron {
+  transition: transform 0.2s ease;
+}
+
+.ng-chevron.rotate {
+  transform: rotate(180deg);
+}
+
+.ng-megamenu-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(94vw, 980px);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  z-index: 1000;
+  overflow: hidden;
+  animation: ngFadeUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ng-megamenu-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  padding: 24px;
+}
+
+.ng-megamenu-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  padding: 24px;
+}
+
+.ng-megamenu-grid-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 24px;
+}
+
+.ng-grid-2-sub {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.ng-megamenu-column {
+  padding: 0 16px;
+}
+
+.ng-megamenu-column:not(:last-child) {
+  border-right: 1px solid var(--line);
+}
+
+.ng-megamenu-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid transparent;
+}
+
+.ng-col-icon {
+  font-size: 18px;
+}
+
+.ng-col-title {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ng-megamenu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ng-megamenu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  background: transparent;
+}
+
+.ng-megamenu-item:hover {
+  background: var(--hover);
+  transform: translateX(3px);
+}
+
+.ng-item-icon-box {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ng-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ng-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ng-item-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ng-item-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366F1;
+}
+
+.ng-item-desc {
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.ng-megamenu-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--navbg);
+  border-top: 1px solid var(--line);
+}
+
+.ng-mm-footer-text {
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.ng-mm-footer-btn {
+  background: transparent;
+  border: none;
+  color: #6366F1;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ng-mm-footer-btn:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .ng-megamenu-grid-3,
+  .ng-megamenu-grid-2,
+  .ng-grid-2-sub {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .ng-megamenu-column:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+  }
+  .ng-megamenu-panel {
+    width: 95vw;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}
+
