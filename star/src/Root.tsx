@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Landing from './Landing';
 import AuthPage from './pages/AuthPage';
 import Verify from './pages/Verify';
@@ -6,6 +7,15 @@ import AboutPage from './pages/AboutPage';
 import FeatureDetail from './pages/FeatureDetail';
 import SolutionsPage from './pages/SolutionsPage';
 import WhyNagmPage from './pages/WhyNagmPage';
+import { APP_ORIGIN } from './auth';
+
+function RedirectToApp() {
+  const location = useLocation();
+  useEffect(() => {
+    window.location.href = `${APP_ORIGIN}${location.pathname}${location.search}${location.hash}`;
+  }, [location]);
+  return null;
+}
 
 // nagm.io: marketing landing + the pre-auth flow (login / register / verify).
 // After a successful sign-in these hand the session off to app.nagm.io.
@@ -23,6 +33,13 @@ export default function Root() {
         <Route path="/solutions" element={<SolutionsPage />} />
         <Route path="/why-nagm" element={<WhyNagmPage />} />
         <Route path="/about" element={<AboutPage />} />
+
+        {/* Redirect all job and shared application links directly to app.nagm.io */}
+        <Route path="/jobs" element={<RedirectToApp />} />
+        <Route path="/jobs/*" element={<RedirectToApp />} />
+        <Route path="/p/:token" element={<RedirectToApp />} />
+        <Route path="/invite/:token" element={<RedirectToApp />} />
+        <Route path="/co/:key" element={<RedirectToApp />} />
 
         {/* Auth Routes */}
         <Route path="/login" element={<AuthPage />} />

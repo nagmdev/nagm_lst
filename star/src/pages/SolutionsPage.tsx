@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { APP_ORIGIN } from '../auth';
 
 interface SolutionInfo {
   slug: string;
@@ -208,7 +209,7 @@ export const SolutionsPage: React.FC = () => {
               Start Hiring in this Sector →
             </button>
             <button
-              onClick={() => navigate('/jobs')}
+              onClick={() => { window.location.href = `${APP_ORIGIN}/jobs`; }}
               style={{ padding: '14px 24px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}
             >
               View Open Roles

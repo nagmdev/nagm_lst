@@ -113,8 +113,23 @@ export const authApi = {
 
 export function apiError(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
   if (err && typeof err === 'object' && 'response' in err) {
-    const e = err as { response?: { data?: { error?: string; message?: string } } };
-    return e.response?.data?.error || e.response?.data?.message || fallback;
+    const e = err as {
+      response?: {
+        status?: number;
+        data?: {
+          error?: string;
+          message?: string;
+          errors?: Array<{ msg?: string; message?: string }>;
+        };
+      };
+    };
+    const data = e.response?.data;
+    if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+      return data.errors[0].msg || data.errors[0].message || fallback;
+    }
+    if (data?.error) return data.error;
+    if (data?.message) return data.message;
+    if (e.response?.status === 409) return 'An account already exists for this email address.';
   }
   return fallback;
 }
