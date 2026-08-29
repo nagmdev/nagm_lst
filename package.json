@@ -1,0 +1,9 @@
+{
+  "name": "nagm-landing",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd star && npm install && npm run build",
+    "dev": "cd star && npm run dev"
+  }
+}
