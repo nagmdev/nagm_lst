@@ -84,7 +84,7 @@ export interface RegisterPayload {
 
 export const authApi = {
   login: (email: string, password: string, rememberMe: boolean) =>
-    api.post<Tokens>('/auth/login', { email, password, rememberMe }).then((r) => r.data),
+    api.post<Tokens>('/auth/login', { email: email.trim(), password, rememberMe }).then((r) => r.data),
   /** Company directory for the sign-up picker ("which company do you work for?"). */
   searchCompanies: (q: string, email?: string) =>
     api
@@ -97,18 +97,18 @@ export const authApi = {
     api
       .post<{ message: string; id: string; email: string; requestedRole?: 'recruiter' | 'company' | null }>(
         '/auth/register',
-        payload,
+        { ...payload, email: payload.email.trim() },
       )
       .then((r) => r.data),
   verifyEmail: (email: string, otp: string) =>
-    api.post<{ message: string }>('/auth/verify-email', { email, otp }).then((r) => r.data),
-  resend: (email: string) => api.post('/auth/resend-verification', { email }).then((r) => r.data),
+    api.post<{ message: string }>('/auth/verify-email', { email: email.trim(), otp }).then((r) => r.data),
+  resend: (email: string) => api.post('/auth/resend-verification', { email: email.trim() }).then((r) => r.data),
   requestPasswordReset: (email: string) =>
-    api.post<{ message: string }>('/auth/request-password-reset', { email }).then((r) => r.data),
+    api.post<{ message: string }>('/auth/request-password-reset', { email: email.trim() }).then((r) => r.data),
   verifyPasswordResetOtp: (email: string, otp: string) =>
-    api.post<{ message: string }>('/auth/verify-password-reset-otp', { email, otp }).then((r) => r.data),
+    api.post<{ message: string }>('/auth/verify-password-reset-otp', { email: email.trim(), otp }).then((r) => r.data),
   resetPasswordWithOtp: (email: string, otp: string, newPassword: string) =>
-    api.post<{ message: string }>('/auth/reset-password-with-otp', { email, otp, newPassword }).then((r) => r.data),
+    api.post<{ message: string }>('/auth/reset-password-with-otp', { email: email.trim(), otp, newPassword }).then((r) => r.data),
 };
 
 export function apiError(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
@@ -120,16 +120,26 @@ export function apiError(err: unknown, fallback = 'Something went wrong. Please 
           error?: string;
           message?: string;
           errors?: Array<{ msg?: string; message?: string }>;
+          details?: string;
         };
       };
+      message?: string;
     };
     const data = e.response?.data;
     if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
       return data.errors[0].msg || data.errors[0].message || fallback;
     }
-    if (data?.error) return data.error;
+    if (data?.error && data.error !== 'Login failed') return data.error;
     if (data?.message) return data.message;
+    if (data?.details) return data.details;
+    if (e.response?.status === 401) return 'Invalid email or password. Please check your credentials.';
     if (e.response?.status === 409) return 'An account already exists for this email address.';
+    if (e.response?.status === 429) return 'Too many attempts. Please wait a few minutes and try again.';
+    if (e.response?.status && e.response.status >= 500) return 'Server error. Our team has been notified, please try again in a moment.';
+    if (data?.error) return data.error;
+  }
+  if (err instanceof Error && err.message.includes('Network Error')) {
+    return 'Network error: unable to connect to server. Please check your internet connection.';
   }
   return fallback;
 }
