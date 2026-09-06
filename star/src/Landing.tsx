@@ -204,27 +204,42 @@ const Landing: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    api
-      .get<PlatformStatsPayload>('/public/platform-stats')
-      .then((res) => {
-        if (active && res.data && res.data.stats) {
-          setPlatformStats(res.data);
-        }
-      })
-      .catch(() => {
-        // Fallback pre-populated
-      });
+    const fetchStats = () => {
+      api
+        .get<PlatformStatsPayload>('/public/platform-stats', {
+          params: { _t: Date.now() },
+          headers: { 'Cache-Control': 'no-cache' },
+        })
+        .then((res) => {
+          if (active && res.data && res.data.stats) {
+            setPlatformStats(res.data);
+          }
+        })
+        .catch(() => {
+          // Fallback pre-populated
+        });
+    };
+
+    fetchStats();
+    // Auto-update every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+    // Instant update when switching back to tab
+    const onVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchStats();
+      }
+    };
+    window.addEventListener('visibilitychange', onVisibilityOrFocus);
+    window.addEventListener('focus', onVisibilityOrFocus);
+
     return () => {
       active = false;
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', onVisibilityOrFocus);
+      window.removeEventListener('focus', onVisibilityOrFocus);
     };
   }, []);
 
-  const dynamicHeroStats = [
-    { value: `${platformStats.allTime?.users || 782}+`, label: 'active candidates' },
-    { value: `${platformStats.allTime?.jobs || 55}`, label: 'created jobs' },
-    { value: `${platformStats.allTime?.applications || 572}+`, label: 'AI applications' },
-    { value: `${platformStats.allTime?.workspaces || 10}`, label: 'companies' },
-  ];
 
   const kpiCards = [
     {
@@ -357,14 +372,6 @@ const Landing: React.FC = () => {
                 <button onClick={goRecruiter} style={{ height: 50, padding: '0 22px', borderRadius: 13, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" /></svg>Hire with Nagm
                 </button>
-              </div>
-              <div style={{ display: 'flex', gap: 34, marginTop: 34, flexWrap: 'wrap' }}>
-                {dynamicHeroStats.map((s) => (
-                  <div key={s.label}>
-                    <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '-.02em' }}>{s.value}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
-                  </div>
-                ))}
               </div>
             </div>
 
