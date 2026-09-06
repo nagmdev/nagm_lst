@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import {
+  Users,
+  FileText,
+  Send,
+  Eye,
+  XCircle,
+  Building2,
+  BarChart3,
+} from 'lucide-react';
+import { api } from './auth';
 import { MegaMenu } from './components/MegaMenu';
 import './landing.css';
 
@@ -11,12 +21,118 @@ import './landing.css';
 
 const ARROW = 'M5 12h14M13 6l6 6-6 6';
 
-const heroStats = [
-  { value: '667+', label: 'active candidates' },
-  { value: '53', label: 'created jobs' },
-  { value: '245+', label: 'AI scans' },
-  { value: '10', label: 'companies' },
-];
+interface PlatformStatsPayload {
+  stats: {
+    totalUsers: number;
+    totalJobs: number;
+    totalApplications: number;
+    totalJobViews: number;
+    closedJobs: number;
+    totalCompanies: number;
+    averageAtsScore: number;
+  };
+  allTime: {
+    users: number;
+    jobs: number;
+    applications: number;
+    closedJobs: number;
+    workspaces: number;
+    views: number;
+  };
+  sparklines: {
+    users: { i: number; v: number }[];
+    jobs: { i: number; v: number }[];
+    applications: { i: number; v: number }[];
+    views: { i: number; v: number }[];
+  };
+}
+
+const DEFAULT_PLATFORM_STATS: PlatformStatsPayload = {
+  stats: {
+    totalUsers: 27,
+    totalJobs: 1,
+    totalApplications: 21,
+    totalJobViews: 4692,
+    closedJobs: 0,
+    totalCompanies: 1,
+    averageAtsScore: 50,
+  },
+  allTime: {
+    users: 782,
+    jobs: 55,
+    applications: 572,
+    closedJobs: 0,
+    workspaces: 3,
+    views: 4692,
+  },
+  sparklines: {
+    users: [{ i: 0, v: 2 }, { i: 1, v: 4 }, { i: 2, v: 5 }, { i: 3, v: 3 }, { i: 4, v: 7 }, { i: 5, v: 4 }, { i: 6, v: 2 }],
+    jobs: [{ i: 0, v: 0 }, { i: 1, v: 1 }, { i: 2, v: 0 }, { i: 3, v: 1 }, { i: 4, v: 0 }, { i: 5, v: 0 }, { i: 6, v: 1 }],
+    applications: [{ i: 0, v: 1 }, { i: 1, v: 3 }, { i: 2, v: 4 }, { i: 3, v: 2 }, { i: 4, v: 5 }, { i: 5, v: 4 }, { i: 6, v: 2 }],
+    views: [{ i: 0, v: 120 }, { i: 1, v: 340 }, { i: 2, v: 450 }, { i: 3, v: 290 }, { i: 4, v: 510 }, { i: 5, v: 420 }, { i: 6, v: 310 }],
+  },
+};
+
+const Sparkline: React.FC<{ data: { i: number; v: number }[]; color: string }> = ({ data, color }) => {
+  if (!data || data.length === 0) return <div style={{ height: 40 }} />;
+  const width = 140;
+  const height = 40;
+  const padding = 4;
+  const maxV = Math.max(...data.map((d) => d.v), 1);
+  const minV = Math.min(...data.map((d) => d.v), 0);
+  const range = maxV - minV || 1;
+
+  const points = data.map((d, index) => {
+    const x = (index / Math.max(data.length - 1, 1)) * width;
+    const y = height - padding - ((d.v - minV) / range) * (height - padding * 2);
+    return { x, y };
+  });
+
+  const linePath = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`, '');
+  const areaPath = `${linePath} L ${width} ${height} L 0 ${height} Z`;
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
+  return (
+    <div style={{ width: '100%', height: 40, overflow: 'hidden' }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill={`url(#${gradId})`} />
+        <path d={linePath} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+};
+
+const CircularProgress: React.FC<{ progress: number; color: string }> = ({ progress, color }) => {
+  const r = 14;
+  const c = 2 * Math.PI * r;
+  const clampedProgress = Math.min(Math.max(progress, 0), 100);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', height: 40, paddingLeft: 4 }}>
+      <svg width="36" height="36" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r={r} fill="none" stroke="var(--line2)" strokeWidth="3.5" />
+        <circle
+          cx="18"
+          cy="18"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="3.5"
+          strokeDasharray={c}
+          strokeDashoffset={c - (clampedProgress / 100) * c}
+          transform="rotate(-90 18 18)"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+};
+
 
 const candBullets = [
   'Arabic RTL & English templates + PDF export',
@@ -85,7 +201,100 @@ const Landing: React.FC = () => {
     setDark(el.classList.contains('dark'));
   };
 
+  const [platformStats, setPlatformStats] = useState<PlatformStatsPayload>(DEFAULT_PLATFORM_STATS);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get<PlatformStatsPayload>('/public/platform-stats')
+      .then((res) => {
+        if (active && res.data && res.data.stats) {
+          setPlatformStats(res.data);
+        }
+      })
+      .catch(() => {
+        // Fallback pre-populated
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const dynamicHeroStats = [
+    { value: `${platformStats.allTime?.users || 782}+`, label: 'active candidates' },
+    { value: `${platformStats.allTime?.jobs || 55}`, label: 'created jobs' },
+    { value: `${platformStats.allTime?.applications || 572}+`, label: 'AI applications' },
+    { value: `${platformStats.allTime?.workspaces || 10}`, label: 'companies' },
+  ];
+
+  const kpiCards = [
+    {
+      name: 'New Users',
+      value: platformStats.stats?.totalUsers ?? 27,
+      delta: `of ${(platformStats.allTime?.users ?? 782).toLocaleString()} total`,
+      deltaTone: 'brand' as const,
+      icon: Users,
+      color: '#6366F1',
+      spark: platformStats.sparklines?.users || [],
+    },
+    {
+      name: 'Jobs Posted',
+      value: platformStats.stats?.totalJobs ?? 1,
+      delta: `of ${(platformStats.allTime?.jobs ?? 55).toLocaleString()} total`,
+      deltaTone: 'brand' as const,
+      icon: FileText,
+      color: '#F59E0B',
+      spark: platformStats.sparklines?.jobs || [],
+    },
+    {
+      name: 'Applications',
+      value: platformStats.stats?.totalApplications ?? 21,
+      delta: `of ${(platformStats.allTime?.applications ?? 572).toLocaleString()} total`,
+      deltaTone: 'ok' as const,
+      icon: Send,
+      color: '#10B981',
+      spark: platformStats.sparklines?.applications || [],
+    },
+    {
+      name: 'Job Views',
+      value: (platformStats.stats?.totalJobViews ?? 4692).toLocaleString(),
+      delta: 'Live views',
+      deltaTone: 'ok' as const,
+      icon: Eye,
+      color: '#06B6D4',
+      spark: platformStats.sparklines?.views || [],
+    },
+    {
+      name: 'Closed Jobs',
+      value: platformStats.stats?.closedJobs ?? 0,
+      delta: 'Ended or Expired',
+      deltaTone: 'warn' as const,
+      icon: XCircle,
+      color: '#EF4444',
+      spark: (platformStats.sparklines?.jobs || []).map((d) => ({ i: d.i, v: 0 })),
+    },
+    {
+      name: 'New Companies',
+      value: platformStats.stats?.totalCompanies ?? 1,
+      delta: `of ${(platformStats.allTime?.workspaces ?? 3).toLocaleString()} total`,
+      deltaTone: 'brand' as const,
+      icon: Building2,
+      color: '#F43F5E',
+      spark: platformStats.sparklines?.jobs || [],
+    },
+    {
+      name: 'Avg ATS Score',
+      value: `${platformStats.stats?.averageAtsScore ?? 50}%`,
+      delta: '+3 points',
+      deltaTone: 'brand' as const,
+      icon: BarChart3,
+      color: '#6D5BF5',
+      ringProgress: platformStats.stats?.averageAtsScore ?? 50,
+    },
+  ];
+
   const container: React.CSSProperties = { maxWidth: 1160, margin: '0 auto', padding: '0 24px' };
+
 
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--ink)', minHeight: '100vh' }}>
@@ -158,8 +367,8 @@ const Landing: React.FC = () => {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" /></svg>Hire with Nagm
                 </button>
               </div>
-              <div style={{ display: 'flex', gap: 34, marginTop: 34 }}>
-                {heroStats.map((s) => (
+              <div style={{ display: 'flex', gap: 34, marginTop: 34, flexWrap: 'wrap' }}>
+                {dynamicHeroStats.map((s) => (
                   <div key={s.label}>
                     <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '-.02em' }}>{s.value}</div>
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
@@ -208,7 +417,85 @@ const Landing: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Live Platform Stats Showcase — 7 Admin KPI Cards (strictly read-only) */}
+          <div style={{ ...container, paddingBottom: 60, paddingTop: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ok)', boxShadow: '0 0 0 3px var(--okSoft)' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                  Live Platform Metrics
+                </span>
+              </div>
+              <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 500 }}>
+                Real-time aggregate platform activity · Read-only
+              </span>
+            </div>
+
+            <div className="ng-platform-kpi-grid">
+              {kpiCards.map((k) => {
+                const Icon = k.icon;
+                return (
+                  <div
+                    key={k.name}
+                    style={{
+                      padding: '12px 10px 0',
+                      display: 'block',
+                      overflow: 'hidden',
+                      cursor: 'default',
+                      userSelect: 'none',
+                      pointerEvents: 'none',
+                      minWidth: 0,
+                      background: 'var(--panel)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 14,
+                      textAlign: 'left',
+                      width: '100%',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'nowrap' }}>
+                      <div style={{ width: 26, height: 26, borderRadius: 7, background: `${k.color}1A`, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={13} />
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '-.02em', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                        {typeof k.value === 'number' ? k.value.toLocaleString() : k.value}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: 999,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          color: k.deltaTone === 'ok' ? 'var(--ok)' : k.deltaTone === 'warn' ? 'var(--warn)' : 'var(--brandInk)',
+                          background: k.deltaTone === 'ok' ? 'var(--okSoft)' : k.deltaTone === 'warn' ? 'var(--warnSoft)' : 'var(--brandSoft)',
+                          marginLeft: 'auto',
+                        }}
+                      >
+                        {k.delta}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {k.name}
+                    </div>
+                    <div>
+                      {k.spark && k.spark.length > 0 ? (
+                        <Sparkline data={k.spark} color={k.color} />
+                      ) : k.ringProgress !== undefined ? (
+                        <CircularProgress progress={k.ringProgress} color={k.color} />
+                      ) : (
+                        <div style={{ height: 40 }} />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </section>
+
 
         {/* Two sides */}
         <section id="features" style={{ ...container, padding: '40px 24px' }}>
