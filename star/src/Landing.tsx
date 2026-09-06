@@ -5,7 +5,6 @@ import {
   FileText,
   Send,
   Eye,
-  XCircle,
   Building2,
   BarChart3,
 } from 'lucide-react';
@@ -229,9 +228,9 @@ const Landing: React.FC = () => {
 
   const kpiCards = [
     {
-      name: 'New Users',
-      value: platformStats.stats?.totalUsers ?? 27,
-      delta: `of ${(platformStats.allTime?.users ?? 782).toLocaleString()} total`,
+      name: 'Total Users',
+      value: platformStats.allTime?.users ?? 782,
+      delta: `+${platformStats.stats?.totalUsers ?? 27} this week`,
       deltaTone: 'brand' as const,
       icon: Users,
       color: '#6366F1',
@@ -239,8 +238,8 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Jobs Posted',
-      value: platformStats.stats?.totalJobs ?? 1,
-      delta: `of ${(platformStats.allTime?.jobs ?? 55).toLocaleString()} total`,
+      value: platformStats.allTime?.jobs ?? 55,
+      delta: `+${platformStats.stats?.totalJobs ?? 1} this week`,
       deltaTone: 'brand' as const,
       icon: FileText,
       color: '#F59E0B',
@@ -248,8 +247,8 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Applications',
-      value: platformStats.stats?.totalApplications ?? 21,
-      delta: `of ${(platformStats.allTime?.applications ?? 572).toLocaleString()} total`,
+      value: platformStats.allTime?.applications ?? 571,
+      delta: `+${platformStats.stats?.totalApplications ?? 21} this week`,
       deltaTone: 'ok' as const,
       icon: Send,
       color: '#10B981',
@@ -257,7 +256,7 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Job Views',
-      value: (platformStats.stats?.totalJobViews ?? 4692).toLocaleString(),
+      value: (platformStats.allTime?.views ?? platformStats.stats?.totalJobViews ?? 4695).toLocaleString(),
       delta: 'Live views',
       deltaTone: 'ok' as const,
       icon: Eye,
@@ -265,18 +264,9 @@ const Landing: React.FC = () => {
       spark: platformStats.sparklines?.views || [],
     },
     {
-      name: 'Closed Jobs',
-      value: platformStats.stats?.closedJobs ?? 0,
-      delta: 'Ended or Expired',
-      deltaTone: 'warn' as const,
-      icon: XCircle,
-      color: '#EF4444',
-      spark: (platformStats.sparklines?.jobs || []).map((d) => ({ i: d.i, v: 0 })),
-    },
-    {
-      name: 'New Companies',
-      value: platformStats.stats?.totalCompanies ?? 1,
-      delta: `of ${(platformStats.allTime?.workspaces ?? 3).toLocaleString()} total`,
+      name: 'Companies',
+      value: platformStats.allTime?.workspaces ?? 3,
+      delta: 'Verified',
       deltaTone: 'brand' as const,
       icon: Building2,
       color: '#F43F5E',
@@ -284,14 +274,15 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Avg ATS Score',
-      value: `${platformStats.stats?.averageAtsScore ?? 50}%`,
+      value: `${platformStats.stats?.averageAtsScore ?? 45}%`,
       delta: '+3 points',
       deltaTone: 'brand' as const,
       icon: BarChart3,
       color: '#6D5BF5',
-      ringProgress: platformStats.stats?.averageAtsScore ?? 50,
+      ringProgress: platformStats.stats?.averageAtsScore ?? 45,
     },
   ];
+
 
   const container: React.CSSProperties = { maxWidth: 1160, margin: '0 auto', padding: '0 24px' };
 
