@@ -70,9 +70,16 @@ const AuthPage: React.FC = () => {
   const preset =
     (location.state as { role?: AccountRole } | null)?.role ??
     (location.pathname === '/register/company' ? 'company' : undefined);
-  const [role, setRole] = useState<AccountRole>(
-    preset === 'recruiter' || preset === 'company' ? preset : 'candidate',
-  );
+  const queryParams = new URLSearchParams(location.search);
+  const paramRole = queryParams.get('role') as AccountRole | null;
+  const initialRole: AccountRole =
+    preset === 'recruiter' || preset === 'company'
+      ? preset
+      : paramRole && ['candidate', 'recruiter', 'company'].includes(paramRole)
+      ? paramRole
+      : 'candidate';
+
+  const [role, setRole] = useState<AccountRole>(initialRole);
 
   const [transitioning, setTransitioning] = useState(false);
   const [transitionDir, setTransitionDir] = useState<'left' | 'right'>('right');
@@ -105,12 +112,35 @@ const AuthPage: React.FC = () => {
   const [forgotErr, setForgotErr] = useState('');
   const [forgotBusy, setForgotBusy] = useState(false);
 
+  const queryEmail = queryParams.get('email') || '';
+
   const [values, setValues] = useState<Record<string, string>>({
-    firstName: '', lastName: '', email: '', companyEmail: '', businessEmail: '',
+    firstName: '', lastName: '',
+    email: queryEmail,
+    companyEmail: queryEmail,
+    businessEmail: queryEmail,
     phone: '', password: '', confirmPassword: '', country: DEFAULT_COUNTRY,
     jobTitle: '', jobTitleOther: '', linkedInProfile: '', companyName: '', industry: '', companySize: '',
     websiteUrl: '',
   });
+
+  // Pre-fill email and role if supplied via query params (e.g. from invite link)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const emailParam = params.get('email');
+    const roleParam = params.get('role') as AccountRole | null;
+    if (emailParam) {
+      setValues((v) => ({
+        ...v,
+        email: v.email || emailParam,
+        companyEmail: v.companyEmail || emailParam,
+        businessEmail: v.businessEmail || emailParam,
+      }));
+    }
+    if (roleParam && ['candidate', 'recruiter', 'company'].includes(roleParam)) {
+      setRole((r) => (r === 'candidate' ? roleParam : r));
+    }
+  }, [location.search]);
 
   // Debounced company lookup. The work email is sent too so a matching domain
   // surfaces the right company first ("sara@microsoft.com" -> Microsoft).
