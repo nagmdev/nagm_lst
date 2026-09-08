@@ -111,6 +111,17 @@ const AuthPage: React.FC = () => {
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotErr, setForgotErr] = useState('');
   const [forgotBusy, setForgotBusy] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendingCode, setResendingCode] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
 
   const queryEmail = queryParams.get('email') || '';
 
@@ -645,8 +656,8 @@ const AuthPage: React.FC = () => {
     </>
   );
 
-  const handleRequestReset = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRequestReset = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setForgotErr('');
     setForgotMsg('');
     const em = forgotEmail.trim();
@@ -657,7 +668,11 @@ const AuthPage: React.FC = () => {
     try {
       setForgotBusy(true);
       await authApi.requestPasswordReset(em);
+      setForgotOtp('');
+      setNewPassword('');
+      setConfirmNewPassword('');
       setForgotMsg(`A 6-digit reset code was sent to ${em}`);
+      setResendCooldown(60);
       setForgotMode('reset');
     } catch (err: any) {
       setForgotErr(apiError(err, 'Failed to send reset code. Please try again.'));
@@ -666,12 +681,33 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResendCode = async () => {
+    if (resendCooldown > 0 || resendingCode || forgotBusy) return;
+    setForgotErr('');
+    const em = forgotEmail.trim();
+    if (!em) {
+      setForgotErr('Please enter a valid email address');
+      return;
+    }
+    try {
+      setResendingCode(true);
+      await authApi.requestPasswordReset(em);
+      setForgotMsg(`A new 6-digit reset code was sent to ${em}`);
+      setResendCooldown(60);
+    } catch (err: any) {
+      setForgotErr(apiError(err, 'Failed to resend code. Please try again.'));
+    } finally {
+      setResendingCode(false);
+    }
+  };
+
+  const handleResetPassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setForgotErr('');
     setForgotMsg('');
-    if (!forgotOtp.trim()) {
-      setForgotErr('Please enter the 6-digit code');
+    const cleanedOtp = forgotOtp.replace(/\D/g, '').trim();
+    if (!cleanedOtp || cleanedOtp.length !== 6) {
+      setForgotErr('Please enter the 6-digit verification code');
       return;
     }
     const pwIssue = passwordIssue(newPassword);
@@ -685,10 +721,13 @@ const AuthPage: React.FC = () => {
     }
     try {
       setForgotBusy(true);
-      await authApi.resetPasswordWithOtp(forgotEmail.trim(), forgotOtp.trim(), newPassword);
+      await authApi.resetPasswordWithOtp(forgotEmail.trim(), cleanedOtp, newPassword);
       setForgotMode('none');
       setSuccessMsg('Password reset successfully! Please sign in with your new password.');
-      setValues((v) => ({ ...v, email: forgotEmail.trim() }));
+      setValues((v) => ({ ...v, email: forgotEmail.trim(), password: '' }));
+      setForgotOtp('');
+      setNewPassword('');
+      setConfirmNewPassword('');
     } catch (err: any) {
       setForgotErr(apiError(err, 'Failed to reset password. Please try again.'));
     } finally {
@@ -701,9 +740,14 @@ const AuthPage: React.FC = () => {
       {forgotMode === 'request' ? (
         <>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Your email address</label>
+            <label htmlFor="forgot-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
+              Your email address
+            </label>
             <input
+              id="forgot-email"
+              name="email"
               type="email"
+              autoComplete="email"
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
               placeholder="you@example.com"
@@ -717,12 +761,12 @@ const AuthPage: React.FC = () => {
           </div>
           {forgotErr && <div style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotErr}</div>}
           <button
-            type="button"
-            onClick={handleRequestReset}
+            type="submit"
             disabled={forgotBusy}
             style={{
               width: '100%', height: 46, borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff',
               fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: forgotBusy ? 'not-allowed' : 'pointer',
+              boxShadow: forgotBusy ? 'none' : '0 6px 18px var(--brandShadow)',
             }}
           >
             {forgotBusy ? 'Sending code…' : 'Send reset code'}
@@ -730,61 +774,187 @@ const AuthPage: React.FC = () => {
         </>
       ) : (
         <>
-          {forgotMsg && <div style={{ fontSize: 13.5, color: 'var(--ok)', background: 'var(--okSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotMsg}</div>}
+          {/* Hidden identity field: prevents browser password managers from autofilling account email into the OTP box */}
+          <input
+            type="email"
+            name="username"
+            value={forgotEmail}
+            readOnly
+            tabIndex={-1}
+            autoComplete="username"
+            style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+            aria-hidden="true"
+          />
+
+          <div
+            style={{
+              fontSize: 13,
+              color: 'var(--ok)',
+              background: 'var(--okSoft)',
+              padding: '10px 12px',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              lineHeight: 1.4,
+            }}
+          >
+            <span style={{ wordBreak: 'break-word' }}>
+              {forgotMsg || `A 6-digit reset code was sent to ${forgotEmail}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setForgotMode('request');
+                setForgotOtp('');
+                setForgotErr('');
+              }}
+              style={{
+                border: 'none',
+                background: 'none',
+                padding: '2px 4px',
+                fontFamily: 'inherit',
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--brandInk)',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              Change
+            </button>
+          </div>
+
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>6-digit verification code</label>
+            <label htmlFor="reset-otp-input" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
+              6-digit verification code
+            </label>
             <input
+              id="reset-otp-input"
+              name="one-time-code"
               type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-form-type="other"
+              maxLength={6}
               value={forgotOtp}
-              onChange={(e) => setForgotOtp(e.target.value)}
+              onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="123456"
               required
               className="ng-auth-field"
               style={{
-                width: '100%', height: 46, borderRadius: 12, fontSize: 16, fontWeight: 700, letterSpacing: '.2em', textAlign: 'center', fontFamily: 'inherit',
+                width: '100%', height: 46, borderRadius: 12, fontSize: 18, fontWeight: 700, letterSpacing: '.25em', textAlign: 'center', fontFamily: 'inherit',
                 border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
               }}
             />
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>New password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              required
-              className="ng-auth-field"
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink2)', marginTop: -6 }}>
+            <span>Didn't receive code?</span>
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={resendCooldown > 0 || resendingCode || forgotBusy}
               style={{
-                width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                fontFamily: 'inherit',
+                fontSize: 13,
+                fontWeight: 700,
+                color: resendCooldown > 0 ? 'var(--ink3)' : 'var(--brandInk)',
+                cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                textDecoration: 'none',
               }}
-            />
+            >
+              {resendingCode ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+            </button>
           </div>
+
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Confirm new password</label>
-            <input
-              type="password"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              placeholder="Re-enter password"
-              required
-              className="ng-auth-field"
-              style={{
-                width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
-              }}
-            />
+            <label htmlFor="reset-new-password" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
+              New password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="reset-new-password"
+                name="new-password"
+                type={showPwd['resetNewPassword'] ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                required
+                className="ng-auth-field"
+                style={{
+                  width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
+                  border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 42px 0 14px',
+                }}
+              />
+              <button
+                type="button"
+                aria-label={showPwd['resetNewPassword'] ? 'Hide password' : 'Show password'}
+                onClick={() => togglePwd('resetNewPassword')}
+                style={{
+                  position: 'absolute', top: 0, bottom: 0, right: 6, margin: 'auto', height: 30, width: 30,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
+                  background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', borderRadius: 7,
+                }}
+              >
+                {showPwd['resetNewPassword'] ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
+
+          <div>
+            <label htmlFor="reset-confirm-password" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
+              Confirm new password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="reset-confirm-password"
+                name="confirm-new-password"
+                type={showPwd['resetConfirmPassword'] ? 'text' : 'password'}
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Re-enter password"
+                required
+                className="ng-auth-field"
+                style={{
+                  width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
+                  border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 42px 0 14px',
+                }}
+              />
+              <button
+                type="button"
+                aria-label={showPwd['resetConfirmPassword'] ? 'Hide password' : 'Show password'}
+                onClick={() => togglePwd('resetConfirmPassword')}
+                style={{
+                  position: 'absolute', top: 0, bottom: 0, right: 6, margin: 'auto', height: 30, width: 30,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
+                  background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', borderRadius: 7,
+                }}
+              >
+                {showPwd['resetConfirmPassword'] ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
           {forgotErr && <div style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotErr}</div>}
           <button
-            type="button"
-            onClick={handleResetPassword}
+            type="submit"
             disabled={forgotBusy}
             style={{
               width: '100%', height: 46, borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff',
               fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: forgotBusy ? 'not-allowed' : 'pointer',
+              boxShadow: forgotBusy ? 'none' : '0 6px 18px var(--brandShadow)',
             }}
           >
             {forgotBusy ? 'Resetting…' : 'Reset password & sign in'}
@@ -793,7 +963,14 @@ const AuthPage: React.FC = () => {
       )}
       <button
         type="button"
-        onClick={() => { setForgotMode('none'); setForgotErr(''); setForgotMsg(''); }}
+        onClick={() => {
+          setForgotMode('none');
+          setForgotErr('');
+          setForgotMsg('');
+          setForgotOtp('');
+          setNewPassword('');
+          setConfirmNewPassword('');
+        }}
         style={{ background: 'none', border: 'none', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center', marginTop: 4 }}
       >
         ← Back to sign in
@@ -820,6 +997,9 @@ const AuthPage: React.FC = () => {
                 setForgotEmail(values.email || '');
                 setForgotErr('');
                 setForgotMsg('');
+                setForgotOtp('');
+                setNewPassword('');
+                setConfirmNewPassword('');
                 setForgotMode('request');
               }}
               style={{ background: 'none', border: 'none', padding: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--brandInk)', textDecoration: 'none', cursor: 'pointer' }}
@@ -836,21 +1016,25 @@ const AuthPage: React.FC = () => {
 
   return (
     <AuthShell
-      title={authMode === 'signup' ? 'Create your account' : 'Welcome back'}
+      title={authMode === 'signup' ? 'Create your account' : forgotMode !== 'none' ? 'Reset your password' : 'Welcome back'}
       subtitle={authMode === 'signup'
         ? 'Verify your email with a one-time code and get started.'
+        : forgotMode === 'request'
+        ? 'Enter your email to receive a 6-digit verification code.'
+        : forgotMode === 'reset'
+        ? 'Enter the 6-digit code and set your new password.'
         : 'Sign in to continue to your Nagm dashboard.'}
       footer={
         authMode === 'signup' ? (
           <>Already have an account?{' '}
-            <span onClick={() => switchMode('login')} role="button" tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') switchMode('login'); }}
+            <span onClick={() => { setForgotMode('none'); switchMode('login'); }} role="button" tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setForgotMode('none'); switchMode('login'); } }}
               style={{ color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' }}>Sign in</span>
           </>
         ) : (
           <>Don't have an account?{' '}
-            <span onClick={() => switchMode('signup')} role="button" tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') switchMode('signup'); }}
+            <span onClick={() => { setForgotMode('none'); switchMode('signup'); }} role="button" tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setForgotMode('none'); switchMode('signup'); } }}
               style={{ color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' }}>Create one</span>
           </>
         )
@@ -861,7 +1045,7 @@ const AuthPage: React.FC = () => {
         {(['signup', 'login'] as AuthMode[]).map((mode) => (
           <button
             key={mode} type="button" role="tab" aria-selected={authMode === mode}
-            onClick={() => switchMode(mode)}
+            onClick={() => { setForgotMode('none'); switchMode(mode); }}
             style={{
               flex: 1, padding: '10px 0', border: 'none', borderRadius: 10,
               background: authMode === mode ? 'var(--panel)' : 'transparent',
@@ -891,7 +1075,16 @@ const AuthPage: React.FC = () => {
           opacity: transitioning ? 0 : 1,
           transform: transitioning ? `translateX(${transitionDir === 'right' ? 20 : -20}px)` : 'translateX(0)',
         }}>
-          <form onSubmit={submit} noValidate>
+          <form
+            onSubmit={
+              authMode === 'login' && forgotMode === 'request'
+                ? handleRequestReset
+                : authMode === 'login' && forgotMode === 'reset'
+                ? handleResetPassword
+                : submit
+            }
+            noValidate
+          >
             {authMode === 'login' ? loginForm()
               : role === 'candidate' ? candidateForm()
                 : role === 'recruiter' ? recruiterForm()
@@ -908,23 +1101,25 @@ const AuthPage: React.FC = () => {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={busy || transitioning}
-              style={{
-                width: '100%', height: 48, borderRadius: 12, border: 'none',
-                background: busy ? 'var(--line)' : 'var(--grad)', color: '#fff',
-                fontFamily: 'inherit', fontSize: 15, fontWeight: 700,
-                cursor: busy ? 'not-allowed' : 'pointer',
-                boxShadow: busy ? 'none' : '0 6px 18px var(--brandShadow)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                transition: 'all .15s',
-              }}
-            >
-              {busy
-                ? (authMode === 'signup' ? 'Creating…' : 'Signing in…')
-                : <>{authMode === 'signup' ? `Create ${roleLabel} Account` : 'Sign in'} <ArrowRight size={17} /></>}
-            </button>
+            {authMode === 'login' && forgotMode !== 'none' ? null : (
+              <button
+                type="submit"
+                disabled={busy || transitioning}
+                style={{
+                  width: '100%', height: 48, borderRadius: 12, border: 'none',
+                  background: busy ? 'var(--line)' : 'var(--grad)', color: '#fff',
+                  fontFamily: 'inherit', fontSize: 15, fontWeight: 700,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  boxShadow: busy ? 'none' : '0 6px 18px var(--brandShadow)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'all .15s',
+                }}
+              >
+                {busy
+                  ? (authMode === 'signup' ? 'Creating…' : 'Signing in…')
+                  : <>{authMode === 'signup' ? `Create ${roleLabel} Account` : 'Sign in'} <ArrowRight size={17} /></>}
+              </button>
+            )}
           </form>
         </div>
       </div>
