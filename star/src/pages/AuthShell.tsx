@@ -51,7 +51,7 @@ const AuthShell: React.FC<{ title: string; subtitle: string; children: React.Rea
       <div className="ng-auth-brand" style={{ position: 'relative', overflow: 'hidden', background: 'var(--inkPanel)', color: '#fff', padding: '56px 52px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: isAr ? 'right' : 'left' }}>
         <div style={{ position: 'absolute', top: -80, left: isAr ? 'auto' : '20%', right: isAr ? '20%' : 'auto', width: 360, height: 360, borderRadius: '50%', background: 'var(--grad)', opacity: 0.22, filter: 'blur(70px)', pointerEvents: 'none' }} />
         <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: '#fff', position: 'relative' }}>
-          <Mark size={38} light /><span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.02em' }}>{isAr ? 'ناجِم' : 'Nagm'}</span>
+          <Mark size={38} light /><span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.02em' }}>{isAr ? 'نجم' : 'Nagm'}</span>
         </a>
         <div style={{ position: 'relative' }}>
           <h1 style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.2, margin: '0 0 16px' }}>
