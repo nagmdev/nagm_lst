@@ -129,6 +129,7 @@ export function apiError(err: unknown, fallback = 'Something went wrong. Please 
     if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
       return data.errors[0].msg || data.errors[0].message || fallback;
     }
+    if (data?.message && (data?.error === 'Too many attempts' || data?.error === 'Too Many Requests' || !data?.error)) return data.message;
     if (data?.error && data.error !== 'Login failed') return data.error;
     if (data?.message) return data.message;
     if (data?.details) return data.details;
