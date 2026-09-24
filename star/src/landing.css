@@ -138,6 +138,17 @@ body {
 .ng-auth-field:focus { border-color: var(--brand) !important; box-shadow: 0 0 0 3px var(--brandSoft2) !important; }
 
 .ng-role-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* The terms checkbox is a styled box over an invisible native input — show the
+   keyboard focus on the box, or tabbing onto it shows nothing at all. */
+.ng-check input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Side-by-side fields (first/last name, country/phone) and the three company
+   choices don't fit a 320–400px phone, least of all with Arabic labels. */
+@media (max-width: 420px) {
+  .ng-field-pair { grid-template-columns: 1fr !important; gap: 0 !important; }
+  .ng-company-modes { grid-template-columns: 1fr !important; }
+}
 @media (hover: hover) {
   .ng-role-tab:not([aria-checked="true"]):hover { color: var(--ink); background: var(--hover); }
 }
