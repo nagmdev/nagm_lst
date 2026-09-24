@@ -36,9 +36,26 @@ function setNonceCookie(nonce: string) {
   document.cookie = `h_nonce=${nonce}; path=/; max-age=120; SameSite=Lax${domainAttr}${secureAttr}`;
 }
 
+/**
+ * The app page to land on after signing in. The app sends people here with
+ * `?returnTo=<full app URL>` (an invitation, a "View application" email link, a
+ * session that expired mid-task); only a path on the app itself is followed,
+ * so a crafted link can't bounce a fresh session to another site.
+ */
+export function appPathFor(returnTo?: string | null): string {
+  if (!returnTo) return '/';
+  try {
+    const url = new URL(returnTo, APP_ORIGIN);
+    if (url.origin !== APP_ORIGIN) return '/';
+    return `${url.pathname}${url.search}` || '/';
+  } catch {
+    return '/';
+  }
+}
+
 /** Exchange the freshly-signed-in session for a one-time hand-off code and
- *  redirect to app.nagm.io/#code=<code>. No real token ever rides in the URL. */
-export async function handoffToApp(t: Tokens, rememberMe: boolean): Promise<void> {
+ *  redirect to app.nagm.io/<returnTo path>#code=<code>. No real token ever rides in the URL. */
+export async function handoffToApp(t: Tokens, rememberMe: boolean, returnTo?: string | null): Promise<void> {
   const nonce = randomNonce();
   setNonceCookie(nonce);
   const { data } = await api.post<{ code: string }>(
@@ -46,7 +63,28 @@ export async function handoffToApp(t: Tokens, rememberMe: boolean): Promise<void
     { rememberMe, nonce },
     { headers: { Authorization: `Bearer ${t.accessToken}` } },
   );
-  window.location.href = `${APP_ORIGIN}/#code=${encodeURIComponent(data.code)}`;
+  // Used to always land on the app's home page: the invite or email link that
+  // brought the person here was lost, and they had to find it again.
+  window.location.href = `${APP_ORIGIN}${appPathFor(returnTo)}#code=${encodeURIComponent(data.code)}`;
+}
+
+// The password typed at sign-up (or at a sign-in that needs verification) is
+// needed once more, to sign in right after the code is verified. It is kept in
+// memory only: it used to ride in the router's history.state, which browsers
+// persist with the session history and hand back on reload or Back.
+let pendingSignIn: { email: string; password: string } | null = null;
+
+export function rememberPendingSignIn(email: string, password: string): void {
+  pendingSignIn = { email: email.trim(), password };
+}
+
+/** The password remembered for this email, if any (kept until forgotten, so a mistyped code can be retried). */
+export function pendingSignInFor(email: string): string | undefined {
+  return pendingSignIn && pendingSignIn.email === email.trim() ? pendingSignIn.password : undefined;
+}
+
+export function forgetPendingSignIn(): void {
+  pendingSignIn = null;
 }
 
 /** The kind of account chosen at sign-up. NOTE: this is a *request*, not an
@@ -129,9 +167,10 @@ export function apiError(err: unknown, fallback = 'Something went wrong. Please 
     if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
       return data.errors[0].msg || data.errors[0].message || fallback;
     }
-    if (data?.message && (data?.error === 'Too many attempts' || data?.error === 'Too Many Requests' || !data?.error)) return data.message;
-    if (data?.error && data.error !== 'Login failed') return data.error;
+    // The API pairs a short `error` code ("Invalid OTP", "OTP expired") with a
+    // sentence meant for people in `message` — show the sentence when there is one.
     if (data?.message) return data.message;
+    if (data?.error && data.error !== 'Login failed') return data.error;
     if (data?.details) return data.details;
     if (e.response?.status === 401) return 'Invalid email or password. Please check your credentials.';
     if (e.response?.status === 409) return 'An account already exists for this email address.';

@@ -22,24 +22,74 @@ const DOMAIN_TYPOS: Record<string, string> = {
 
 export const normalizeEmail = (value: string): string => (value || '').trim();
 
+type Lang = 'en' | 'ar';
+
+const MSG = {
+  en: {
+    emailRequired: 'Email is required',
+    emailTooLong: 'Email address is too long',
+    emailSpaces: 'Email cannot contain spaces',
+    emailOneAt: 'Email must contain a single @',
+    emailLocal: 'Add the part before the @',
+    emailDomain: 'Add the part after the @',
+    emailDots: 'Email cannot contain two dots in a row',
+    emailEdgeDot: 'Email cannot start or end with a dot',
+    emailTld: 'Add a domain ending, like .com',
+    emailInvalid: 'Enter a valid email address',
+    phoneRequired: 'Phone number is required',
+    phoneLetters: 'Phone number cannot contain letters',
+    phoneInvalid: 'Enter a valid phone number',
+    phoneIntl: 'Enter a valid international number',
+    phoneCountryIntl: (country: string, example: string) => `Enter a valid ${country} number, e.g. ${example}`,
+    phoneCountryLocal: (country: string, example: string) => `Enter a valid ${country} mobile number, e.g. ${example}`,
+  },
+  ar: {
+    emailRequired: 'البريد الإلكتروني مطلوب',
+    emailTooLong: 'البريد الإلكتروني طويل جداً',
+    emailSpaces: 'لا يمكن أن يحتوي البريد الإلكتروني على مسافات',
+    emailOneAt: 'يجب أن يحتوي البريد الإلكتروني على علامة @ واحدة',
+    emailLocal: 'أضف الجزء الذي يسبق @',
+    emailDomain: 'أضف الجزء الذي يلي @',
+    emailDots: 'لا يمكن أن يحتوي البريد الإلكتروني على نقطتين متتاليتين',
+    emailEdgeDot: 'لا يمكن أن يبدأ اسم البريد أو ينتهي بنقطة',
+    emailTld: 'أضف نهاية النطاق، مثل ‎.com',
+    emailInvalid: 'أدخل بريداً إلكترونياً صحيحاً',
+    phoneRequired: 'رقم الهاتف مطلوب',
+    phoneLetters: 'لا يمكن أن يحتوي رقم الهاتف على حروف',
+    phoneInvalid: 'أدخل رقم هاتف صحيحاً',
+    phoneIntl: 'أدخل رقماً دولياً صحيحاً',
+    phoneCountryIntl: (country: string, example: string) => `أدخل رقماً صحيحاً في ${country}، مثل ${example}`,
+    phoneCountryLocal: (country: string, example: string) => `أدخل رقم جوال صحيحاً في ${country}، مثل ${example}`,
+  },
+};
+
+/** Country names as shown in the UI; the English name stays the stored value. */
+export const COUNTRY_NAMES_AR: Record<string, string> = {
+  Egypt: 'مصر',
+  'Saudi Arabia': 'السعودية',
+  'United Arab Emirates': 'الإمارات',
+};
+const countryLabel = (country: string, lang: Lang) => (lang === 'ar' ? COUNTRY_NAMES_AR[country] || country : country);
+
 /**
  * Returns an error message, or '' when the address is usable.
  * `required` lets a form treat an empty value as optional.
  */
-export function emailError(value: string, required = true): string {
+export function emailError(value: string, required = true, lang: Lang = 'en'): string {
+  const m = MSG[lang];
   const email = normalizeEmail(value);
-  if (!email) return required ? 'Email is required' : '';
-  if (email.length > 254) return 'Email address is too long';
-  if (/\s/.test(email)) return 'Email cannot contain spaces';
+  if (!email) return required ? m.emailRequired : '';
+  if (email.length > 254) return m.emailTooLong;
+  if (/\s/.test(email)) return m.emailSpaces;
   const parts = email.split('@');
-  if (parts.length !== 2) return 'Email must contain a single @';
+  if (parts.length !== 2) return m.emailOneAt;
   const [local, domain] = parts;
-  if (!local) return 'Add the part before the @';
-  if (!domain) return 'Add the part after the @';
-  if (email.includes('..')) return 'Email cannot contain two dots in a row';
-  if (local.startsWith('.') || local.endsWith('.')) return 'Email cannot start or end with a dot';
-  if (!domain.includes('.')) return 'Add a domain ending, like .com';
-  if (!EMAIL_RE.test(email)) return 'Enter a valid email address';
+  if (!local) return m.emailLocal;
+  if (!domain) return m.emailDomain;
+  if (email.includes('..')) return m.emailDots;
+  if (local.startsWith('.') || local.endsWith('.')) return m.emailEdgeDot;
+  if (!domain.includes('.')) return m.emailTld;
+  if (!EMAIL_RE.test(email)) return m.emailInvalid;
   return '';
 }
 
@@ -66,25 +116,26 @@ const cleanPhone = (value: string) => {
 };
 
 /** Returns an error message, or '' when the number is usable. */
-export function phoneError(value: string, country?: string, required = true): string {
+export function phoneError(value: string, country?: string, required = true, lang: Lang = 'en'): string {
+  const m = MSG[lang];
   const raw = (value || '').trim();
-  if (!raw) return required ? 'Phone number is required' : '';
-  if (/[A-Za-z]/.test(raw)) return 'Phone number cannot contain letters';
+  if (!raw) return required ? m.phoneRequired : '';
+  if (/[A-Za-z]/.test(raw)) return m.phoneLetters;
   const { digits, hadPlus } = cleanPhone(raw);
-  if (!digits) return 'Enter a valid phone number';
+  if (!digits) return m.phoneInvalid;
 
   const rule = country ? PHONE_RULES[country] : undefined;
   if (hadPlus) {
     if (rule) {
-      return rule.intl.test(digits) ? '' : `Enter a valid ${country} number, e.g. +${rule.code} ${rule.example.replace(/^0/, '')}`;
+      return rule.intl.test(digits) ? '' : m.phoneCountryIntl(countryLabel(country!, lang), `+${rule.code} ${rule.example.replace(/^0/, '')}`);
     }
-    return /^\d{8,15}$/.test(digits) && !digits.startsWith('0') ? '' : 'Enter a valid international number';
+    return /^\d{8,15}$/.test(digits) && !digits.startsWith('0') ? '' : m.phoneIntl;
   }
   if (rule) {
     if (rule.local.test(digits) || rule.intl.test(digits)) return '';
-    return `Enter a valid ${country} mobile number, e.g. ${rule.example}`;
+    return m.phoneCountryLocal(countryLabel(country!, lang), rule.example);
   }
-  return /^\d{7,15}$/.test(digits) ? '' : 'Enter a valid phone number';
+  return /^\d{7,15}$/.test(digits) ? '' : m.phoneInvalid;
 }
 
 /** Convert an accepted number to E.164 for storage/sending. */

@@ -1,12 +1,16 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowRight, Globe, Search, User } from 'lucide-react';
+import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, Globe, Search, User } from 'lucide-react';
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
-import { authApi, handoffToApp, apiError, APP_ORIGIN } from '../auth';
+import { authApi, handoffToApp, apiError, rememberPendingSignIn } from '../auth';
 import type { AccountRole, RegisterPayload, CompanyOption } from '../auth';
-import { emailError, emailSuggestion, phoneError, phoneExample, normalizePhone } from '../utils/contact';
+import { emailError, emailSuggestion, phoneError, phoneExample, normalizePhone, COUNTRY_NAMES_AR } from '../utils/contact';
+import { linkIssue } from '../utils/links';
+import { useAuthText, localizeServerMessage } from '../i18n/authText';
+
+type AuthText = ReturnType<typeof useAuthText>;
 
 type AuthMode = 'signup' | 'login';
 
@@ -41,14 +45,37 @@ const JOB_TITLES = [
   'Head of Talent Acquisition', 'HR Director', 'Other',
 ];
 
-/** Mirrors the backend policy: 8+ chars and at least 3 of the 4 character classes. */
-function passwordIssue(pw: string): string {
-  if (!pw) return 'Password is required';
-  if (pw.length < 8) return 'Password must be at least 8 characters';
+// Arabic labels for the job-title list. The English title is still what gets
+// stored, so recruiters' titles stay searchable whatever language they used.
+const JOB_TITLES_AR: Record<string, string> = {
+  Recruiter: 'مسؤول توظيف', 'Senior Recruiter': 'مسؤول توظيف أول', 'Technical Recruiter': 'مسؤول توظيف تقني',
+  'Lead Recruiter': 'قائد فريق التوظيف', 'Recruitment Coordinator': 'منسّق توظيف', 'Talent Sourcer': 'باحث عن الكفاءات',
+  'Talent Acquisition Specialist': 'أخصائي استقطاب مواهب', 'Talent Acquisition Partner': 'شريك استقطاب مواهب',
+  'Talent Acquisition Manager': 'مدير استقطاب مواهب', 'HR Specialist': 'أخصائي موارد بشرية',
+  'HR Generalist': 'أخصائي موارد بشرية عام', 'HR Manager': 'مدير موارد بشرية', 'HR Business Partner': 'شريك أعمال الموارد البشرية',
+  'Hiring Manager': 'مدير التوظيف', 'Head of Talent Acquisition': 'رئيس استقطاب المواهب', 'HR Director': 'مدير إدارة الموارد البشرية',
+  Other: 'أخرى',
+};
+
+// Same limits the API enforces (backend/src/middlewares/validation.ts), so the
+// form stops a too-long value before the server has to.
+const MAX_LEN: Record<string, number> = {
+  firstName: 80, lastName: 80, companyName: 160, jobTitleOther: 120,
+};
+const PASSWORD_MAX = 128;
+
+/** Mirrors the backend policy: 8–128 chars and at least 3 of the 4 character classes. */
+function passwordIssue(pw: string, t: AuthText): string {
+  if (!pw) return t.passwordRequired;
+  if (pw.length < 8) return t.passwordTooShort;
+  if (pw.length > PASSWORD_MAX) return t.passwordTooLong;
   const classes = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((re) => re.test(pw)).length;
-  if (classes < 3) return 'Include at least 3 of: uppercase, lowercase, number, symbol';
+  if (classes < 3) return t.passwordClasses;
   return '';
 }
+
+/** Fields whose content is always left-to-right, even on the Arabic page. */
+const LTR_TYPES = new Set(['email', 'tel', 'url', 'password']);
 
 /**
  * nagm.io's unified sign-up / sign-in page with three account types.
@@ -60,6 +87,10 @@ function passwordIssue(pw: string): string {
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const t = useAuthText();
+  /** Server messages arrive in English; show them in the page's language. */
+  const tr = (message: string) => localizeServerMessage(message, t.lang);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const initialMode: AuthMode = location.pathname === '/login' ? 'login' : 'signup';
   const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
@@ -124,6 +155,8 @@ const AuthPage: React.FC = () => {
 
 
   const queryEmail = queryParams.get('email') || '';
+  // Where the app wants the person back after signing in (validated in appPathFor).
+  const returnTo = queryParams.get('returnTo');
 
   const [values, setValues] = useState<Record<string, string>>({
     firstName: '', lastName: '',
@@ -176,9 +209,10 @@ const AuthPage: React.FC = () => {
       setAuthMode(mode);
       setError(''); setSuccessMsg(''); setErrors({}); setTouched({});
       setTransitioning(false);
-      navigate(mode === 'signup' ? '/register' : '/login', { replace: true });
+      // Keep ?email=…&returnTo=… — switching tabs used to drop the invite context.
+      navigate({ pathname: mode === 'signup' ? '/register' : '/login', search: location.search }, { replace: true });
     }, 150);
-  }, [authMode, transitioning, navigate]);
+  }, [authMode, transitioning, navigate, location.search]);
 
   const switchRole = useCallback((newRole: AccountRole) => {
     if (newRole === role || transitioning) return;
@@ -193,38 +227,44 @@ const AuthPage: React.FC = () => {
 
   const validateField = (name: string, val?: string): string => {
     const v = (val ?? values[name] ?? '').trim();
+    const tooLong = (label: string) => (MAX_LEN[name] && v.length > MAX_LEN[name] ? t.tooLong(label, MAX_LEN[name]) : '');
     let err = '';
     switch (name) {
-      case 'firstName': err = v ? '' : 'First name is required'; break;
-      case 'lastName': err = v ? '' : 'Last name is required'; break;
-      case 'companyName': err = v ? '' : 'Company name is required'; break;
-      case 'jobTitle': err = v ? '' : 'Job title is required'; break;
-      case 'jobTitleOther': err = values.jobTitle === 'Other' && !v ? 'Please specify your job title' : ''; break;
+      case 'firstName': err = v ? tooLong(t.firstName) : t.firstNameRequired; break;
+      case 'lastName': err = v ? tooLong(t.lastName) : t.lastNameRequired; break;
+      case 'companyName': err = v ? tooLong(t.companyName) : t.companyNameRequired; break;
+      case 'jobTitle': err = v ? '' : t.jobTitleRequired; break;
+      case 'jobTitleOther': err = values.jobTitle === 'Other' && !v ? t.jobTitleOtherRequired : tooLong(t.jobTitle); break;
       // The join picker isn't a text field — validate the selection itself.
-      case 'company': err = companyMode === 'join' && !pickedCompany ? 'Choose your company, or create a new one' : ''; break;
-      case 'email': err = emailError(v); break;
+      case 'company': err = companyMode === 'join' && !pickedCompany ? t.chooseCompany : ''; break;
+      case 'email': err = emailError(v, true, t.lang); break;
       // A recruiter's email may be a company address OR a personal one — a new
       // company often has no domain email yet, and freelance recruiters use a
       // personal address. So we only check the address is valid, not its domain.
       case 'companyEmail':
       case 'businessEmail':
-        err = emailError(v);
+        err = emailError(v, true, t.lang);
         break;
-      // Phone is optional for a candidate but required for hiring accounts —
-      // recruiters get called back on it.
-      // Phone is not validated at sign-up — the recruiter's number is assigned
-      // later — so anything typed here is accepted (still digits-only + capped).
-      case 'phone': err = ''; break;
-      case 'linkedInProfile': err = v && !v.includes('linkedin.com') ? 'Enter a valid LinkedIn URL' : ''; break;
-      case 'websiteUrl': err = v && !/^https?:\/\/.+\..+/.test(v) ? 'Invalid URL' : ''; break;
-      case 'password': err = passwordIssue(values.password); break;
+      // Phone is optional, but a number that IS typed must be one the server
+      // accepts. It used to pass here unchecked ("123") and come back as a
+      // server error after the whole form had been submitted.
+      case 'phone': err = phoneError(v, values.country, false, t.lang); break;
+      case 'linkedInProfile': err = linkIssue('linkedin', v) ? t.invalidLinkedIn : ''; break;
+      case 'websiteUrl': err = linkIssue('website', v) ? t.invalidWebsite : ''; break;
+      case 'password': err = passwordIssue(values.password, t); break;
       case 'confirmPassword':
-        err = !v ? 'Please confirm your password' : v !== values.password ? 'Passwords do not match' : '';
+        err = !v ? t.confirmRequired : v !== values.password ? t.passwordsDontMatch : '';
         break;
     }
     setErrors((p) => ({ ...p, [name]: err }));
     return err;
   };
+
+  // A language switch re-renders every shown error in the new language.
+  useEffect(() => {
+    Object.keys(touched).forEach((name) => { if (touched[name]) validateField(name); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.lang]);
 
   const handleChange = (name: string, value: string) => {
     // Cap the phone number to the selected country's digit count, digits only.
@@ -234,38 +274,61 @@ const AuthPage: React.FC = () => {
     }
     setValues((p) => ({ ...p, [name]: value }));
     if (touched[name]) validateField(name, value);
+    // The phone rule depends on the country: re-check a typed number when it changes.
+    if (name === 'country' && touched.phone) {
+      setErrors((p) => ({ ...p, phone: phoneError(values.phone, value, false, t.lang) }));
+    }
   };
   const handleBlur = (name: string) => {
     setTouched((p) => ({ ...p, [name]: true }));
     validateField(name);
   };
 
+  // In on-screen order, so the first failing one is the first the user sees.
   const signupFields = (): string[] => {
     switch (role) {
-      case 'candidate': return ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+      case 'candidate': return ['firstName', 'lastName', 'email', 'phone', 'password', 'confirmPassword'];
       case 'recruiter': return [
         'firstName', 'lastName', 'companyEmail',
         // Independent (freelancer) recruiters have no company to validate.
         ...(companyMode === 'join' ? ['company'] : companyMode === 'create' ? ['companyName'] : []),
-        'jobTitle',
+        'phone', 'jobTitle',
         ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []),
         'linkedInProfile', 'password', 'confirmPassword',
       ];
-      case 'company': return ['companyName', 'businessEmail', 'password', 'confirmPassword'];
+      case 'company': return ['companyName', 'businessEmail', 'phone', 'password', 'confirmPassword'];
     }
+  };
+
+  /** Focus a field of THIS form on the next frame; a no-op once the form is gone. */
+  const focusInForm = (id: string) =>
+    requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>(`#${id}`)?.focus());
+
+  /** Move focus to the first invalid field so keyboard and screen-reader users land on the problem. */
+  const focusFirstInvalid = (fields: string[], errs: Record<string, string>) => {
+    const first = fields.find((f) => errs[f]);
+    const id = first === 'company' ? 'company-search-input' : first === 'jobTitle' ? null : first;
+    requestAnimationFrame(() => {
+      const el = id
+        ? formRef.current?.querySelector<HTMLElement>(`#${id}`)
+        : formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+      el?.focus();
+    });
   };
 
   const isValid = (): boolean => {
     const fields = authMode === 'signup' ? signupFields() : ['email', 'password'];
-    let ok = true;
-    fields.forEach((f) => { if (validateField(f)) ok = false; });
+    const errs: Record<string, string> = {};
+    fields.forEach((f) => { errs[f] = validateField(f); });
     setTouched((p) => {
       const next = { ...p };
       fields.forEach((f) => { next[f] = true; });
       return next;
     });
-    if (authMode === 'signup' && !acceptTerms) ok = false;
-    return ok;
+    const fieldsOk = fields.every((f) => !errs[f]);
+    if (!fieldsOk) focusFirstInvalid(fields, errs);
+    else if (authMode === 'signup' && !acceptTerms) focusInForm('accept-terms');
+    return fieldsOk && (authMode !== 'signup' || acceptTerms);
   };
 
   const emailForRole = () =>
@@ -275,9 +338,11 @@ const AuthPage: React.FC = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Enter pressed again (or a double click) while a request is in flight.
+    if (busy) return;
     setError(''); setSuccessMsg('');
     if (!isValid()) {
-      if (authMode === 'signup' && !acceptTerms) setError('Please accept the Terms of Service to continue.');
+      if (authMode === 'signup' && !acceptTerms) setError(t.acceptTerms);
       flashErrors();
       return;
     }
@@ -316,9 +381,12 @@ const AuthPage: React.FC = () => {
       try {
         await authApi.register(payload);
         // Registration sends an OTP; verify it, then we auto-sign-in and hand off.
-        navigate('/verify', { state: { email, password: values.password, rememberMe: true } });
+        // The password stays in memory for that sign-in — never in history.state,
+        // which the browser keeps (and restores) with the page history.
+        rememberPendingSignIn(email, values.password);
+        navigate('/verify', { state: { email, rememberMe: true, returnTo } });
       } catch (e2) {
-        setError(apiError(e2, 'Could not create your account.'));
+        setError(tr(apiError(e2, t.failCreate)));
         setBusy(false);
       }
       return;
@@ -326,114 +394,147 @@ const AuthPage: React.FC = () => {
 
     // Sign in — the server decides the account's real role.
     try {
-      const t = await authApi.login(values.email.trim(), values.password, remember);
-      await handoffToApp(t, remember); // → app.nagm.io, already signed in
-    } catch (e2: any) {
-      const resp = e2?.response;
+      const tokens = await authApi.login(values.email.trim(), values.password, remember);
+      await handoffToApp(tokens, remember, returnTo); // → app.nagm.io, already signed in
+    } catch (e2) {
+      const resp = (e2 as { response?: { status?: number; data?: { requiresVerification?: boolean } } })?.response;
       // The backend signals "email not verified" via HTTP 403 — route into the
       // verify flow instead of showing a dead-end error.
       if (resp?.status === 403 && resp?.data?.requiresVerification) {
-        navigate('/verify', { state: { email: values.email.trim(), password: values.password, rememberMe: remember } });
+        rememberPendingSignIn(values.email.trim(), values.password);
+        navigate('/verify', { state: { email: values.email.trim(), rememberMe: remember, returnTo } });
         return;
       }
-      setError(apiError(e2, 'Could not sign you in. Check your email and password.'));
+      setError(tr(apiError(e2, t.failSignIn)));
       setBusy(false);
     }
   };
 
   const togglePwd = (k: string) => setShowPwd((p) => ({ ...p, [k]: !p[k] }));
 
+  const showErr = (name: string) => !!errors[name] && !!touched[name];
+  const errId = (name: string) => `${name}-error`;
+  const errorText = (name: string) =>
+    showErr(name) ? <div id={errId(name)} style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors[name]}</div> : null;
+  const requiredMark = <span aria-hidden="true"> *</span>;
+
+  // Padding by the PAGE direction: `lead` on the side where field icons sit, `trail`
+  // where the show-password button sits. Physical sides, because an email or
+  // password input is itself dir="ltr" on the Arabic page, so its own logical
+  // start/end would be the opposite of the icon's and the text ran under it.
+  const pad = (lead: number, trail: number): React.CSSProperties =>
+    t.isAr ? { paddingRight: lead, paddingLeft: trail } : { paddingLeft: lead, paddingRight: trail };
+
+  const inputStyle = (name: string, extra: React.CSSProperties = {}): React.CSSProperties => ({
+    width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
+    border: `1px solid ${showErr(name) ? 'var(--danger)' : 'var(--line)'}`,
+    background: 'var(--panel)', color: 'var(--ink)', outline: 'none',
+    marginTop: 0,
+    boxShadow: showErr(name) ? '0 0 0 3px var(--dangerSoft)' : 'none',
+    transition: 'border-color .15s, box-shadow .15s',
+    ...extra,
+  });
+
   const field = (
     name: string,
     label: string,
-    opts?: { type?: string; placeholder?: string; required?: boolean; autoComplete?: string; icon?: React.ReactNode },
-  ) => (
-    <div style={{ marginBottom: 16 }}>
-      <label htmlFor={name} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
-        {label}{opts?.required !== false ? ' *' : ''}
-      </label>
-      <div style={{ position: 'relative' }}>
-        {opts?.icon && (
-          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }}>
-            {opts.icon}
+    opts?: { type?: string; placeholder?: string; required?: boolean; autoComplete?: string; icon?: React.ReactNode; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'] },
+  ) => {
+    const type = opts?.type || 'text';
+    const suggestion = type === 'email' && !errors[name] ? emailSuggestion(values[name] || '') : null;
+    const required = opts?.required !== false;
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <label htmlFor={name} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+          {label}{required ? requiredMark : ''}
+        </label>
+        <div style={{ position: 'relative' }}>
+          {opts?.icon && (
+            <div aria-hidden="true" style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }}>
+              {opts.icon}
+            </div>
+          )}
+          <input
+            id={name}
+            name={name}
+            type={type}
+            value={values[name] || ''}
+            placeholder={opts?.placeholder}
+            autoComplete={opts?.autoComplete}
+            inputMode={opts?.inputMode}
+            // Emails, phones and links read left-to-right even on the Arabic
+            // page; names follow whatever script was typed.
+            dir={LTR_TYPES.has(type) ? 'ltr' : 'auto'}
+            maxLength={MAX_LEN[name] ? MAX_LEN[name] + 20 : undefined}
+            aria-required={required || undefined}
+            aria-invalid={showErr(name) || undefined}
+            aria-describedby={showErr(name) ? errId(name) : undefined}
+            onChange={(e) => handleChange(name, e.target.value)}
+            onBlur={() => handleBlur(name)}
+            className={`ng-auth-field ${animatingErrors && showErr(name) ? 'ng-error-pulse' : ''}`}
+            style={inputStyle(name, {
+              paddingBlock: 0,
+              ...pad(opts?.icon ? 38 : 14, 14),
+              textAlign: t.isAr && LTR_TYPES.has(type) ? 'right' : undefined,
+            })}
+          />
+        </div>
+        {errorText(name)}
+        {/* Catch the classic "@gmial.com" slip — one tap fixes it. */}
+        {suggestion && (
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>
+            {t.didYouMean}{' '}
+            <button
+              type="button"
+              dir="ltr"
+              onClick={() => { handleChange(name, suggestion); setTouched((p) => ({ ...p, [name]: true })); }}
+              style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' }}
+            >
+              {suggestion}
+            </button>
+            {t.isAr ? '؟' : '?'}
           </div>
         )}
-        <input
-          id={name}
-          type={opts?.type || 'text'}
-          value={values[name] || ''}
-          placeholder={opts?.placeholder}
-          autoComplete={opts?.autoComplete}
-          onChange={(e) => handleChange(name, e.target.value)}
-          onBlur={() => handleBlur(name)}
-          className={`ng-auth-field ${animatingErrors && errors[name] && touched[name] ? 'ng-error-pulse' : ''}`}
-          style={{
-            width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-            border: `1px solid ${errors[name] && touched[name] ? 'var(--danger)' : 'var(--line)'}`,
-            background: 'var(--panel)', color: 'var(--ink)', outline: 'none',
-            padding: opts?.icon ? '0 14px 0 38px' : '0 14px',
-            marginTop: 0,
-            boxShadow: errors[name] && touched[name] ? '0 0 0 3px var(--dangerSoft)' : 'none',
-            transition: 'border-color .15s, box-shadow .15s',
-          }}
-        />
       </div>
-      {errors[name] && touched[name] && (
-        <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors[name]}</div>
-      )}
-      {/* Catch the classic "@gmial.com" slip — one tap fixes it. */}
-      {opts?.type === 'email' && !errors[name] && emailSuggestion(values[name] || '') && (
-        <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>
-          Did you mean{' '}
-          <button
-            type="button"
-            onClick={() => { handleChange(name, emailSuggestion(values[name] || '')!); setTouched((p) => ({ ...p, [name]: true })); }}
-            style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' }}
-          >
-            {emailSuggestion(values[name] || '')}
-          </button>
-          ?
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   const passwordField = (name: string, label: string, autoComplete: string) => (
     <div style={{ marginBottom: 16 }}>
-      <label htmlFor={name} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>{label} *</label>
+      <label htmlFor={name} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>{label}{requiredMark}</label>
       <div style={{ position: 'relative' }}>
         <input
           id={name}
+          name={name}
           type={showPwd[name] ? 'text' : 'password'}
           value={values[name] || ''}
           autoComplete={autoComplete}
+          dir="ltr"
+          aria-required
+          aria-invalid={showErr(name) || undefined}
+          aria-describedby={showErr(name) ? errId(name) : undefined}
           onChange={(e) => handleChange(name, e.target.value)}
           onBlur={() => handleBlur(name)}
-          className={`ng-auth-field ${animatingErrors && errors[name] && touched[name] ? 'ng-error-pulse' : ''}`}
-          style={{
-            width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-            border: `1px solid ${errors[name] && touched[name] ? 'var(--danger)' : 'var(--line)'}`,
-            background: 'var(--panel)', color: 'var(--ink)', outline: 'none',
-            padding: '0 42px 0 14px', marginTop: 0,
-            boxShadow: errors[name] && touched[name] ? '0 0 0 3px var(--dangerSoft)' : 'none',
-            transition: 'border-color .15s, box-shadow .15s',
-          }}
+          className={`ng-auth-field ${animatingErrors && showErr(name) ? 'ng-error-pulse' : ''}`}
+          style={inputStyle(name, {
+            paddingBlock: 0, ...pad(14, 42),
+            textAlign: t.isAr ? 'right' : undefined,
+          })}
         />
         <button
-          type="button" aria-label={showPwd[name] ? 'Hide password' : 'Show password'}
+          type="button" aria-label={showPwd[name] ? t.hidePassword : t.showPassword}
+          aria-pressed={!!showPwd[name]}
           onClick={() => togglePwd(name)}
           style={{
-            position: 'absolute', top: 0, bottom: 0, right: 6, margin: 'auto', height: 30, width: 30,
+            position: 'absolute', top: 0, bottom: 0, insetInlineEnd: 6, margin: 'auto', height: 30, width: 30,
             display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
             background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', borderRadius: 7,
           }}
         >
-          {showPwd[name] ? <EyeOff size={16} /> : <Eye size={16} />}
+          {showPwd[name] ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
         </button>
       </div>
-      {errors[name] && touched[name] && (
-        <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors[name]}</div>
-      )}
+      {errorText(name)}
     </div>
   );
 
@@ -442,31 +543,39 @@ const AuthPage: React.FC = () => {
       <SelectDropdown
         value={values.country || DEFAULT_COUNTRY}
         onChange={(v) => handleChange('country', v)}
-        options={COUNTRY_OPTIONS.map((c) => ({ value: c, label: `${c} ${COUNTRY_CODES[c] || ''}` }))}
-        label="Country"
+        options={COUNTRY_OPTIONS.map((c) => ({
+          value: c,
+          label: `${t.isAr ? COUNTRY_NAMES_AR[c] || c : c} ${COUNTRY_CODES[c] || ''}`,
+        }))}
+        label={t.country}
         required
       />
     </div>
   );
 
   // Country and phone sit side by side — the country's dial code frames the number.
-  const countryPhoneRow = (phoneRequired: boolean) => (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
+  const countryPhoneRow = () => (
+    <div className="ng-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
       {countrySelect()}
-      {field('phone', 'Phone Number', { type: 'tel', placeholder: phoneExample(values.country), required: false, autoComplete: 'tel' })}
+      {field('phone', t.phone, { type: 'tel', placeholder: phoneExample(values.country), required: false, autoComplete: 'tel', inputMode: 'tel' })}
     </div>
   );
 
+  const termsInvalid = !acceptTerms && error === t.acceptTerms;
   const terms = () => (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', marginBottom: 16 }}>
+    <label className="ng-check" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', marginBottom: 16 }}>
       <span style={{ position: 'relative', width: 18, height: 18, flexShrink: 0 }}>
         <input
-          type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)}
+          id="accept-terms"
+          type="checkbox" checked={acceptTerms}
+          onChange={(e) => { setAcceptTerms(e.target.checked); if (e.target.checked && error === t.acceptTerms) setError(''); }}
+          aria-invalid={termsInvalid || undefined}
+          aria-describedby={termsInvalid ? 'form-error' : undefined}
           style={{ position: 'absolute', inset: 0, margin: 0, opacity: 0, cursor: 'pointer', zIndex: 1 }}
         />
-        <span style={{
+        <span aria-hidden="true" style={{
           position: 'absolute', inset: 0, borderRadius: 5,
-          border: `2px solid ${acceptTerms ? 'var(--brand)' : 'var(--line)'}`,
+          border: `2px solid ${acceptTerms ? 'var(--brand)' : termsInvalid ? 'var(--danger)' : 'var(--line)'}`,
           background: acceptTerms ? 'var(--brand)' : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s',
         }}>
@@ -477,7 +586,9 @@ const AuthPage: React.FC = () => {
           )}
         </span>
       </span>
-      I accept the <span style={{ color: 'var(--brand)', fontWeight: 600 }}>Terms of Service</span> and <span style={{ color: 'var(--brand)', fontWeight: 600 }}>Privacy Policy</span>
+      <span>
+        {t.termsPrefix}<span style={{ color: 'var(--brand)', fontWeight: 600 }}>{t.terms}</span>{t.termsAnd}<span style={{ color: 'var(--brand)', fontWeight: 600 }}>{t.privacy}</span>
+      </span>
     </label>
   );
 
@@ -487,49 +598,51 @@ const AuthPage: React.FC = () => {
       background: 'var(--brandSoft)', border: '1px solid var(--brandBorder)', marginBottom: 16,
       fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.45,
     }}>
-      <Check size={15} style={{ color: 'var(--brand)', flexShrink: 0, marginTop: 1 }} />
+      <Check size={15} aria-hidden="true" style={{ color: 'var(--brand)', flexShrink: 0, marginTop: 1 }} />
       {/* There is no human review step any more — a company goes live the moment
           it registers. Promising an approval that never comes left people
           waiting for an email that was never going to arrive. */}
-      <span>
-        {role === 'company'
-          ? 'Your company goes live as soon as you verify your email — nothing waits for approval. You will then add your commercial registration, tax card and company details before posting jobs.'
-          : 'Verify your email and you are in. To see candidate profiles you will join a company, or create one, on the next step.'}
-      </span>
+      <span>{role === 'company' ? t.approvalCompany : t.approvalRecruiter}</span>
     </div>
   );
 
   const candidateForm = () => (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {field('firstName', 'First Name', { autoComplete: 'given-name', placeholder: 'Sara' })}
-        {field('lastName', 'Last Name', { autoComplete: 'family-name', placeholder: 'Mansour' })}
+      <div className="ng-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {field('firstName', t.firstName, { autoComplete: 'given-name', placeholder: t.isAr ? 'سارة' : 'Sara' })}
+        {field('lastName', t.lastName, { autoComplete: 'family-name', placeholder: t.isAr ? 'منصور' : 'Mansour' })}
       </div>
-      {field('email', 'Email', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {countryPhoneRow(false)}
-      {passwordField('password', 'Password', 'new-password')}
-      {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
+      {field('email', t.email, { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
+      {countryPhoneRow()}
+      {passwordField('password', t.password, 'new-password')}
+      {passwordField('confirmPassword', t.confirmPassword, 'new-password')}
       {terms()}
     </>
   );
 
+  const companyModes = [
+    ['join', t.joinExisting, Building2],
+    ['create', t.createNew, Briefcase],
+    ['independent', t.independent, User],
+  ] as const;
+
   const recruiterForm = () => (
     <>
       {approvalNote()}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {field('firstName', 'First Name', { autoComplete: 'given-name' })}
-        {field('lastName', 'Last Name', { autoComplete: 'family-name' })}
+      <div className="ng-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {field('firstName', t.firstName, { autoComplete: 'given-name' })}
+        {field('lastName', t.lastName, { autoComplete: 'family-name' })}
       </div>
-      {field('companyEmail', 'Email', { type: 'email', placeholder: 'you@company.com or you@gmail.com', autoComplete: 'email', icon: <Mail size={15} /> })}
+      {field('companyEmail', t.email, { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
 
       {/* A recruiter joins an existing company, creates one (never a duplicate),
           or works independently as a freelance recruiter with no company. */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
-          Your company
-        </label>
-        <div role="radiogroup" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
-          {([['join', 'Join existing', Building2], ['create', 'Create new', Briefcase], ['independent', 'Independent', User]] as const).map(([val, label, Icon]) => {
+        <div id="company-mode-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
+          {t.yourCompany}
+        </div>
+        <div role="radiogroup" aria-labelledby="company-mode-label" className="ng-company-modes" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+          {companyModes.map(([val, label, Icon]) => {
             const active = companyMode === val;
             return (
               <button
@@ -537,18 +650,18 @@ const AuthPage: React.FC = () => {
                 type="button"
                 role="radio"
                 aria-checked={active}
-                onClick={() => setCompanyMode(val)}
+                onClick={() => { setCompanyMode(val); setErrors((p) => ({ ...p, company: '', companyName: '' })); }}
                 className="ng-role-tab"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderRadius: 12,
                   border: `1.5px solid ${active ? 'var(--brand)' : 'var(--line)'}`,
                   background: active ? 'var(--brandSoft)' : 'var(--panel)',
                   color: active ? 'var(--brandInk)' : 'var(--ink2)',
-                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', minWidth: 0,
                   transition: 'border-color .15s, background .15s, color .15s',
                 }}
               >
-                <Icon size={15} /> {label}
+                <Icon size={15} aria-hidden="true" style={{ flexShrink: 0 }} /> <span style={{ minWidth: 0 }}>{label}</span>
               </button>
             );
           })}
@@ -557,28 +670,26 @@ const AuthPage: React.FC = () => {
         {companyMode === 'join' ? (
           <>
             <div style={{ position: 'relative' }}>
-              <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
-              <label htmlFor="company-search-input" className="sr-only">Search companies</label>
+              <Search size={15} aria-hidden="true" style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
+              <label htmlFor="company-search-input" className="sr-only">{t.searchCompanies}</label>
               <input
                 id="company-search-input"
-                aria-label="Search companies"
+                dir="auto"
                 value={companyQuery}
                 onChange={(e) => { setCompanyQuery(e.target.value); setPickedCompany(null); }}
-                placeholder="Search companies — e.g. Microsoft"
+                placeholder={t.searchCompaniesPlaceholder}
+                aria-invalid={showErr('company') || undefined}
+                aria-describedby={showErr('company') ? errId('company') : undefined}
                 className="ng-auth-field"
-                style={{
-                  width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-                  border: `1px solid ${errors.company && touched.company ? 'var(--danger)' : 'var(--line)'}`,
-                  background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px 0 38px', marginTop: 0,
-                }}
+                style={inputStyle('company', { paddingBlock: 0, ...pad(38, 14) })}
               />
             </div>
 
             {pickedCompany ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'var(--brandSoft)', border: '1px solid var(--brandBorder)' }}>
-                <Check size={15} style={{ color: 'var(--brand)', flexShrink: 0 }} />
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{pickedCompany.name}</span>
-                <button type="button" onClick={() => { setPickedCompany(null); setCompanyQuery(''); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 12.5 }}>change</button>
+                <Check size={15} aria-hidden="true" style={{ color: 'var(--brand)', flexShrink: 0 }} />
+                <bdi style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{pickedCompany.name}</bdi>
+                <button type="button" onClick={() => { setPickedCompany(null); setCompanyQuery(''); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 12.5 }}>{t.change}</button>
               </div>
             ) : companyResults.length > 0 ? (
               <div className="ng-dropdown-list" style={{ marginTop: 8, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', maxHeight: 190, overflowY: 'auto' }}>
@@ -586,60 +697,50 @@ const AuthPage: React.FC = () => {
                   <button
                     key={c.id}
                     type="button"
-                    onClick={() => { setPickedCompany(c); setCompanyQuery(c.name); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', border: 'none', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 13.5, textAlign: 'left', cursor: 'pointer' }}
+                    onClick={() => { setPickedCompany(c); setCompanyQuery(c.name); setErrors((p) => ({ ...p, company: '' })); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', border: 'none', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 13.5, textAlign: 'start', cursor: 'pointer' }}
                   >
-                    <Building2 size={14} style={{ color: 'var(--ink3)', flexShrink: 0 }} />
-                    <span style={{ flex: 1 }}>{c.name}</span>
-                    {c.verified && <Check size={13} style={{ color: 'var(--ok)' }} />}
+                    <Building2 size={14} aria-hidden="true" style={{ color: 'var(--ink3)', flexShrink: 0 }} />
+                    <bdi style={{ flex: 1 }}>{c.name}</bdi>
+                    {c.verified && <Check size={13} aria-label={t.isAr ? 'موثّقة' : 'Verified'} style={{ color: 'var(--ok)' }} />}
                   </button>
                 ))}
               </div>
             ) : companyQuery.trim().length > 1 ? (
-              <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '8px 0 0' }}>
-                No match. Pick <strong>Create new</strong> if your company isn't on Nagm yet.
-              </p>
+              <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '8px 0 0' }}>{t.noCompanyMatch}</p>
             ) : null}
 
             {pickedCompany && (
-              <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '8px 0 0' }}>
-                We'll send a request to join {pickedCompany.name} — their admin approves it (instant if your work email matches).
-              </p>
+              <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '8px 0 0' }}>{t.joinNote(pickedCompany.name)}</p>
             )}
-            {errors.company && touched.company && (
-              <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors.company}</div>
-            )}
+            {errorText('company')}
           </>
         ) : companyMode === 'create' ? (
           <>
-            {field('companyName', 'Company Name', { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
-            <p style={{ fontSize: 12, color: 'var(--ink3)', margin: 0 }}>You'll become the owner of this company on Nagm.</p>
+            {field('companyName', t.companyName, { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
+            <p style={{ fontSize: 12, color: 'var(--ink3)', margin: 0 }}>{t.ownerNote}</p>
           </>
         ) : (
-          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>
-            You're signing up as an independent recruiter — no company needed. You can
-            create or join one later from your profile.
-          </p>
+          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>{t.independentNote}</p>
         )}
       </div>
-      {countryPhoneRow(false)}
+      {countryPhoneRow()}
       <div style={{ marginBottom: 16 }}>
         <SelectDropdown
           value={values.jobTitle}
-          onChange={(v) => { handleChange('jobTitle', v); setTouched((p) => ({ ...p, jobTitle: true })); }}
-          options={JOB_TITLES}
-          placeholder="Select your job title"
-          label="Job Title"
+          onChange={(v) => { handleChange('jobTitle', v); setTouched((p) => ({ ...p, jobTitle: true })); validateField('jobTitle', v); }}
+          options={JOB_TITLES.map((j) => ({ value: j, label: t.isAr ? JOB_TITLES_AR[j] || j : j }))}
+          placeholder={t.selectJobTitle}
+          label={t.jobTitle}
           required
+          error={errors.jobTitle}
+          touched={touched.jobTitle}
         />
-        {errors.jobTitle && touched.jobTitle && (
-          <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>{errors.jobTitle}</div>
-        )}
       </div>
-      {values.jobTitle === 'Other' && field('jobTitleOther', 'Please specify your job title', { placeholder: 'e.g. VP of Talent', icon: <Briefcase size={15} /> })}
-      {field('linkedInProfile', 'LinkedIn Profile', { type: 'url', placeholder: 'https://linkedin.com/in/yourprofile', required: false, icon: <Globe size={15} /> })}
-      {passwordField('password', 'Password', 'new-password')}
-      {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
+      {values.jobTitle === 'Other' && field('jobTitleOther', t.jobTitleOther, { placeholder: t.isAr ? 'مثل: نائب رئيس المواهب' : 'e.g. VP of Talent', icon: <Briefcase size={15} /> })}
+      {field('linkedInProfile', t.linkedIn, { type: 'url', placeholder: 'linkedin.com/in/yourprofile', required: false, icon: <Globe size={15} /> })}
+      {passwordField('password', t.password, 'new-password')}
+      {passwordField('confirmPassword', t.confirmPassword, 'new-password')}
       {terms()}
     </>
   );
@@ -647,22 +748,24 @@ const AuthPage: React.FC = () => {
   const companyForm = () => (
     <>
       {approvalNote()}
-      {field('companyName', 'Company Name', { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
-      {field('businessEmail', 'Business Email', { type: 'email', placeholder: 'hello@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {countryPhoneRow(true)}
-      {passwordField('password', 'Password', 'new-password')}
-      {passwordField('confirmPassword', 'Confirm Password', 'new-password')}
+      {field('companyName', t.companyName, { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
+      {field('businessEmail', t.businessEmail, { type: 'email', placeholder: 'hello@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
+      {countryPhoneRow()}
+      {passwordField('password', t.password, 'new-password')}
+      {passwordField('confirmPassword', t.confirmPassword, 'new-password')}
       {terms()}
     </>
   );
 
   const handleRequestReset = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (forgotBusy) return;
     setForgotErr('');
     setForgotMsg('');
     const em = forgotEmail.trim();
     if (!em || emailError(em)) {
-      setForgotErr('Please enter a valid email address');
+      setForgotErr(t.enterValidEmail);
+      focusInForm('forgot-email');
       return;
     }
     try {
@@ -671,11 +774,11 @@ const AuthPage: React.FC = () => {
       setForgotOtp('');
       setNewPassword('');
       setConfirmNewPassword('');
-      setForgotMsg(`A 6-digit reset code was sent to ${em}`);
+      setForgotMsg(t.resetCodeSent(em));
       setResendCooldown(60);
       setForgotMode('reset');
-    } catch (err: any) {
-      setForgotErr(apiError(err, 'Failed to send reset code. Please try again.'));
+    } catch (err) {
+      setForgotErr(tr(apiError(err, t.failSendReset)));
     } finally {
       setForgotBusy(false);
     }
@@ -686,16 +789,16 @@ const AuthPage: React.FC = () => {
     setForgotErr('');
     const em = forgotEmail.trim();
     if (!em) {
-      setForgotErr('Please enter a valid email address');
+      setForgotErr(t.enterValidEmail);
       return;
     }
     try {
       setResendingCode(true);
       await authApi.requestPasswordReset(em);
-      setForgotMsg(`A new 6-digit reset code was sent to ${em}`);
+      setForgotMsg(t.newResetCodeSent(em));
       setResendCooldown(60);
-    } catch (err: any) {
-      setForgotErr(apiError(err, 'Failed to resend code. Please try again.'));
+    } catch (err) {
+      setForgotErr(tr(apiError(err, t.failResend)));
     } finally {
       setResendingCode(false);
     }
@@ -703,73 +806,102 @@ const AuthPage: React.FC = () => {
 
   const handleResetPassword = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (forgotBusy) return;
     setForgotErr('');
     setForgotMsg('');
     const cleanedOtp = forgotOtp.replace(/\D/g, '').trim();
     if (!cleanedOtp || cleanedOtp.length !== 6) {
-      setForgotErr('Please enter the 6-digit verification code');
+      setForgotErr(t.enterCode);
+      focusInForm('reset-otp-input');
       return;
     }
-    const pwIssue = passwordIssue(newPassword);
+    const pwIssue = passwordIssue(newPassword, t);
     if (pwIssue) {
       setForgotErr(pwIssue);
+      focusInForm('reset-new-password');
       return;
     }
     if (newPassword !== confirmNewPassword) {
-      setForgotErr('Passwords do not match');
+      setForgotErr(t.passwordsDontMatch);
+      focusInForm('reset-confirm-password');
       return;
     }
     try {
       setForgotBusy(true);
       await authApi.resetPasswordWithOtp(forgotEmail.trim(), cleanedOtp, newPassword);
       setForgotMode('none');
-      setSuccessMsg('Password reset successfully! Please sign in with your new password.');
+      setSuccessMsg(t.resetDone);
       setValues((v) => ({ ...v, email: forgotEmail.trim(), password: '' }));
       setForgotOtp('');
       setNewPassword('');
       setConfirmNewPassword('');
-    } catch (err: any) {
-      setForgotErr(apiError(err, 'Failed to reset password. Please try again.'));
+    } catch (err) {
+      setForgotErr(tr(apiError(err, t.failReset)));
     } finally {
       setForgotBusy(false);
     }
   };
+
+  const BackArrow = t.isAr ? ArrowRight : ArrowLeft;
+  const ForwardArrow = t.isAr ? ArrowLeft : ArrowRight;
+  const plainInput: React.CSSProperties = {
+    width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
+    border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', paddingBlock: 0, paddingInline: 14,
+  };
+  const labelStyle: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 };
+  const alertBox = (text: string, id?: string) => (
+    <div id={id} role="alert" style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10 }}>{text}</div>
+  );
+  const eyeButton = (key: string) => (
+    <button
+      type="button"
+      aria-label={showPwd[key] ? t.hidePassword : t.showPassword}
+      aria-pressed={!!showPwd[key]}
+      onClick={() => togglePwd(key)}
+      style={{
+        position: 'absolute', top: 0, bottom: 0, insetInlineEnd: 6, margin: 'auto', height: 30, width: 30,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
+        background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', borderRadius: 7,
+      }}
+    >
+      {showPwd[key] ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+    </button>
+  );
 
   const forgotForm = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {forgotMode === 'request' ? (
         <>
           <div>
-            <label htmlFor="forgot-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
-              Your email address
-            </label>
+            <label htmlFor="forgot-email" style={labelStyle}>{t.yourEmail}</label>
             <input
               id="forgot-email"
               name="email"
               type="email"
+              dir="ltr"
               autoComplete="email"
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
               placeholder="you@example.com"
               required
+              aria-invalid={!!forgotErr || undefined}
+              aria-describedby={forgotErr ? 'forgot-error' : undefined}
               className="ng-auth-field"
-              style={{
-                width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
-              }}
+              style={{ ...plainInput, textAlign: t.isAr ? 'right' : undefined }}
             />
           </div>
-          {forgotErr && <div style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotErr}</div>}
+          {forgotErr && alertBox(forgotErr, 'forgot-error')}
           <button
             type="submit"
             disabled={forgotBusy}
+            aria-busy={forgotBusy || undefined}
             style={{
               width: '100%', height: 46, borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff',
               fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: forgotBusy ? 'not-allowed' : 'pointer',
               boxShadow: forgotBusy ? 'none' : '0 6px 18px var(--brandShadow)',
             }}
           >
-            {forgotBusy ? 'Sending code…' : 'Send reset code'}
+            {forgotBusy ? t.sendingCode : t.sendResetCode}
           </button>
         </>
       ) : (
@@ -787,22 +919,13 @@ const AuthPage: React.FC = () => {
           />
 
           <div
+            role="status"
             style={{
-              fontSize: 13,
-              color: 'var(--ok)',
-              background: 'var(--okSoft)',
-              padding: '10px 12px',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              lineHeight: 1.4,
+              fontSize: 13, color: 'var(--ok)', background: 'var(--okSoft)', padding: '10px 12px', borderRadius: 10,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, lineHeight: 1.4,
             }}
           >
-            <span style={{ wordBreak: 'break-word' }}>
-              {forgotMsg || `A 6-digit reset code was sent to ${forgotEmail}`}
-            </span>
+            <span style={{ wordBreak: 'break-word' }}>{forgotMsg || t.resetCodeSent(forgotEmail)}</span>
             <button
               type="button"
               onClick={() => {
@@ -811,31 +934,21 @@ const AuthPage: React.FC = () => {
                 setForgotErr('');
               }}
               style={{
-                border: 'none',
-                background: 'none',
-                padding: '2px 4px',
-                fontFamily: 'inherit',
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--brandInk)',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
+                border: 'none', background: 'none', padding: '2px 4px', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                color: 'var(--brandInk)', cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap', flexShrink: 0,
               }}
             >
-              Change
+              {t.changeEmail}
             </button>
           </div>
 
           <div>
-            <label htmlFor="reset-otp-input" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
-              6-digit verification code
-            </label>
+            <label htmlFor="reset-otp-input" style={labelStyle}>{t.codeLabel}</label>
             <input
               id="reset-otp-input"
               name="one-time-code"
               type="text"
+              dir="ltr"
               inputMode="numeric"
               pattern="[0-9]*"
               autoComplete="one-time-code"
@@ -847,117 +960,82 @@ const AuthPage: React.FC = () => {
               onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="123456"
               required
+              aria-describedby={forgotErr ? 'forgot-error' : undefined}
               className="ng-auth-field"
-              style={{
-                width: '100%', height: 46, borderRadius: 12, fontSize: 18, fontWeight: 700, letterSpacing: '.25em', textAlign: 'center', fontFamily: 'inherit',
-                border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 14px',
-              }}
+              style={{ ...plainInput, fontSize: 18, fontWeight: 700, letterSpacing: '.25em', textAlign: 'center' }}
             />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink2)', marginTop: -6 }}>
-            <span>Didn't receive code?</span>
+            <span>{t.noCode}</span>
             <button
               type="button"
               onClick={handleResendCode}
               disabled={resendCooldown > 0 || resendingCode || forgotBusy}
               style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                fontFamily: 'inherit',
-                fontSize: 13,
-                fontWeight: 700,
+                background: 'none', border: 'none', padding: 0, fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
                 color: resendCooldown > 0 ? 'var(--ink3)' : 'var(--brandInk)',
-                cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
-                textDecoration: 'none',
+                cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer', textDecoration: 'none',
               }}
             >
-              {resendingCode ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+              {resendingCode ? t.sending : resendCooldown > 0 ? t.resendIn(resendCooldown) : t.resendCode}
             </button>
           </div>
 
           <div>
-            <label htmlFor="reset-new-password" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
-              New password
-            </label>
+            <label htmlFor="reset-new-password" style={labelStyle}>{t.newPassword}</label>
             <div style={{ position: 'relative' }}>
               <input
                 id="reset-new-password"
                 name="new-password"
                 type={showPwd['resetNewPassword'] ? 'text' : 'password'}
+                dir="ltr"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
-                placeholder="At least 8 characters"
+                placeholder={t.newPasswordPlaceholder}
                 required
                 className="ng-auth-field"
-                style={{
-                  width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-                  border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 42px 0 14px',
-                }}
+                style={{ ...plainInput, ...pad(14, 42), textAlign: t.isAr ? 'right' : undefined }}
               />
-              <button
-                type="button"
-                aria-label={showPwd['resetNewPassword'] ? 'Hide password' : 'Show password'}
-                onClick={() => togglePwd('resetNewPassword')}
-                style={{
-                  position: 'absolute', top: 0, bottom: 0, right: 6, margin: 'auto', height: 30, width: 30,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
-                  background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', borderRadius: 7,
-                }}
-              >
-                {showPwd['resetNewPassword'] ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              {eyeButton('resetNewPassword')}
             </div>
           </div>
 
           <div>
-            <label htmlFor="reset-confirm-password" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
-              Confirm new password
-            </label>
+            <label htmlFor="reset-confirm-password" style={labelStyle}>{t.confirmNewPassword}</label>
             <div style={{ position: 'relative' }}>
               <input
                 id="reset-confirm-password"
                 name="confirm-new-password"
                 type={showPwd['resetConfirmPassword'] ? 'text' : 'password'}
+                dir="ltr"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 autoComplete="new-password"
-                placeholder="Re-enter password"
+                placeholder={t.confirmNewPasswordPlaceholder}
                 required
                 className="ng-auth-field"
-                style={{
-                  width: '100%', height: 46, borderRadius: 12, fontSize: 14, fontFamily: 'inherit',
-                  border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', outline: 'none', padding: '0 42px 0 14px',
-                }}
+                style={{ ...plainInput, ...pad(14, 42), textAlign: t.isAr ? 'right' : undefined }}
               />
-              <button
-                type="button"
-                aria-label={showPwd['resetConfirmPassword'] ? 'Hide password' : 'Show password'}
-                onClick={() => togglePwd('resetConfirmPassword')}
-                style={{
-                  position: 'absolute', top: 0, bottom: 0, right: 6, margin: 'auto', height: 30, width: 30,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
-                  background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', borderRadius: 7,
-                }}
-              >
-                {showPwd['resetConfirmPassword'] ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              {eyeButton('resetConfirmPassword')}
             </div>
           </div>
 
-          {forgotErr && <div style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10 }}>{forgotErr}</div>}
+          {forgotErr && alertBox(forgotErr, 'forgot-error')}
           <button
             type="submit"
             disabled={forgotBusy}
+            aria-busy={forgotBusy || undefined}
             style={{
               width: '100%', height: 46, borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff',
               fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: forgotBusy ? 'not-allowed' : 'pointer',
               boxShadow: forgotBusy ? 'none' : '0 6px 18px var(--brandShadow)',
             }}
           >
-            {forgotBusy ? 'Resetting…' : 'Reset password & sign in'}
+            {/* It resets the password and returns to sign-in — it does not sign
+                in by itself, so the button no longer promises "& sign in". */}
+            {forgotBusy ? t.resetting : t.resetPassword}
           </button>
         </>
       )}
@@ -971,9 +1049,9 @@ const AuthPage: React.FC = () => {
           setNewPassword('');
           setConfirmNewPassword('');
         }}
-        style={{ background: 'none', border: 'none', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center', marginTop: 4 }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 4, fontFamily: 'inherit' }}
       >
-        ← Back to sign in
+        <BackArrow size={14} aria-hidden="true" /> {t.backToSignIn}
       </button>
     </div>
   );
@@ -984,12 +1062,12 @@ const AuthPage: React.FC = () => {
         forgotForm()
       ) : (
         <>
-          {field('email', 'Email', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-          {passwordField('password', 'Password', 'current-password')}
+          {field('email', t.email, { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
+          {passwordField('password', t.password, 'current-password')}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }}>
               <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--brand)' }} />
-              Keep me signed in for 30 days
+              {t.keepSignedIn}
             </label>
             <button
               type="button"
@@ -1002,9 +1080,9 @@ const AuthPage: React.FC = () => {
                 setConfirmNewPassword('');
                 setForgotMode('request');
               }}
-              style={{ background: 'none', border: 'none', padding: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--brandInk)', textDecoration: 'none', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', padding: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--brandInk)', textDecoration: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
             >
-              Forgot your password?
+              {t.forgotPassword}
             </button>
           </div>
         </>
@@ -1012,36 +1090,33 @@ const AuthPage: React.FC = () => {
     </>
   );
 
-  const roleLabel = role === 'candidate' ? 'Candidate' : role === 'recruiter' ? 'Recruiter' : 'Company';
+  const roleLabel = role === 'candidate' ? t.roleCandidate : role === 'recruiter' ? t.roleRecruiter : t.roleCompany;
+  const linkButton: React.CSSProperties = { background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' };
 
   return (
     <AuthShell
-      title={authMode === 'signup' ? 'Create your account' : forgotMode !== 'none' ? 'Reset your password' : 'Welcome back'}
+      title={authMode === 'signup' ? t.titleSignup : forgotMode !== 'none' ? t.titleReset : t.titleLogin}
       subtitle={authMode === 'signup'
-        ? 'Verify your email with a one-time code and get started.'
+        ? t.subSignup
         : forgotMode === 'request'
-        ? 'Enter your email to receive a 6-digit verification code.'
+        ? t.subResetRequest
         : forgotMode === 'reset'
-        ? 'Enter the 6-digit code and set your new password.'
-        : 'Sign in to continue to your Nagm dashboard.'}
+        ? t.subResetCode
+        : t.subLogin}
       footer={
         authMode === 'signup' ? (
-          <>Already have an account?{' '}
-            <span onClick={() => { setForgotMode('none'); switchMode('login'); }} role="button" tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') { setForgotMode('none'); switchMode('login'); } }}
-              style={{ color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' }}>Sign in</span>
+          <>{t.haveAccount}{' '}
+            <button type="button" onClick={() => { setForgotMode('none'); switchMode('login'); }} style={linkButton}>{t.signInLink}</button>
           </>
         ) : (
-          <>Don't have an account?{' '}
-            <span onClick={() => { setForgotMode('none'); switchMode('signup'); }} role="button" tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') { setForgotMode('none'); switchMode('signup'); } }}
-              style={{ color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' }}>Create one</span>
+          <>{t.noAccount}{' '}
+            <button type="button" onClick={() => { setForgotMode('none'); switchMode('signup'); }} style={linkButton}>{t.createOneLink}</button>
           </>
         )
       }
     >
       {/* Sign Up / Log In tabs */}
-      <div role="tablist" aria-label="Authentication mode" style={{ display: 'flex', background: 'var(--hover)', borderRadius: 12, padding: 4, marginBottom: 22 }}>
+      <div role="tablist" aria-label={t.authModeLabel} style={{ display: 'flex', background: 'var(--hover)', borderRadius: 12, padding: 4, marginBottom: 22 }}>
         {(['signup', 'login'] as AuthMode[]).map((mode) => (
           <button
             key={mode} type="button" role="tab" aria-selected={authMode === mode}
@@ -1055,15 +1130,15 @@ const AuthPage: React.FC = () => {
               transition: 'all 200ms ease-in-out',
             }}
           >
-            {mode === 'signup' ? 'Sign Up' : 'Log In'}
+            {mode === 'signup' ? t.tabSignup : t.tabLogin}
           </button>
         ))}
       </div>
 
       {authMode === 'signup' && (
         <>
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--ink3)', margin: '4px 0 12px' }}>
-            Choose your account type
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: t.isAr ? 0 : '.06em', color: 'var(--ink3)', margin: '4px 0 12px' }}>
+            {t.chooseAccountType}
           </p>
           <RoleCards selected={role} onSelect={switchRole} />
         </>
@@ -1073,9 +1148,10 @@ const AuthPage: React.FC = () => {
         <div style={{
           transition: 'opacity 250ms ease-in-out, transform 250ms ease-in-out',
           opacity: transitioning ? 0 : 1,
-          transform: transitioning ? `translateX(${transitionDir === 'right' ? 20 : -20}px)` : 'translateX(0)',
+          transform: transitioning ? `translateX(${(transitionDir === 'right' ? 20 : -20) * (t.isAr ? -1 : 1)}px)` : 'translateX(0)',
         }}>
           <form
+            ref={formRef}
             onSubmit={
               authMode === 'login' && forgotMode === 'request'
                 ? handleRequestReset
@@ -1084,6 +1160,7 @@ const AuthPage: React.FC = () => {
                 : submit
             }
             noValidate
+            aria-busy={busy || undefined}
           >
             {authMode === 'login' ? loginForm()
               : role === 'candidate' ? candidateForm()
@@ -1091,13 +1168,13 @@ const AuthPage: React.FC = () => {
                   : companyForm()}
 
             {error && (
-              <div style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10, marginBottom: 12 }}>
+              <div id="form-error" role="alert" style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10, marginBottom: 12 }}>
                 {error}
               </div>
             )}
             {successMsg && (
-              <div style={{ fontSize: 13.5, color: 'var(--ok)', background: 'var(--okSoft)', padding: '10px 12px', borderRadius: 10, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Check size={16} /> {successMsg}
+              <div role="status" style={{ fontSize: 13.5, color: 'var(--ok)', background: 'var(--okSoft)', padding: '10px 12px', borderRadius: 10, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Check size={16} aria-hidden="true" /> {successMsg}
               </div>
             )}
 
@@ -1116,8 +1193,8 @@ const AuthPage: React.FC = () => {
                 }}
               >
                 {busy
-                  ? (authMode === 'signup' ? 'Creating…' : 'Signing in…')
-                  : <>{authMode === 'signup' ? `Create ${roleLabel} Account` : 'Sign in'} <ArrowRight size={17} /></>}
+                  ? (authMode === 'signup' ? t.creating : t.signingIn)
+                  : <>{authMode === 'signup' ? t.createAccount(roleLabel) : t.signIn} <ForwardArrow size={17} aria-hidden="true" /></>}
               </button>
             )}
           </form>
