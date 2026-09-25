@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Globe } from 'lucide-react';
 import { applyLangToDocument, setLang, useLang } from '../i18n/lang';
+import { api } from '../auth';
 
 const Mark = ({ size = 34, light = false }: { size?: number; light?: boolean }) => (
   <div style={{ width: size, height: size, borderRadius: size * 0.28, background: light ? 'rgba(255,255,255,.16)' : 'var(--grad)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: size * 0.5, flexShrink: 0 }}>N</div>
@@ -13,6 +14,41 @@ const AuthShell: React.FC<{ title: string; subtitle: React.ReactNode; children: 
   );
   // One shared language for the shell AND the form inside it (see i18n/lang).
   const lang = useLang();
+
+  const [stats, setStats] = useState<{ candidates: string; companies: string; arCandidates: string; arCompanies: string }>({
+    candidates: '980+',
+    companies: '5',
+    arCandidates: '+980',
+    arCompanies: '5',
+  });
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get('/public/platform-stats', {
+        params: { _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache' },
+      })
+      .then((res) => {
+        if (!active || !res.data) return;
+        const users = res.data.allTime?.users ?? res.data.stats?.totalUsers;
+        const workspaces = res.data.allTime?.workspaces ?? res.data.stats?.totalCompanies;
+        if (users != null || workspaces != null) {
+          const userCount = users ?? 980;
+          const companyCount = workspaces ?? 5;
+          setStats({
+            candidates: `${userCount.toLocaleString()}+`,
+            companies: `${companyCount.toLocaleString()}`,
+            arCandidates: `+${userCount.toLocaleString()}`,
+            arCompanies: `${companyCount.toLocaleString()}`,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     applyLangToDocument(lang);
@@ -49,8 +85,8 @@ const AuthShell: React.FC<{ title: string; subtitle: React.ReactNode; children: 
           </p>
           <div style={{ display: 'flex', gap: 30, marginTop: 34 }}>
             {(isAr
-              ? [['+335', 'مرشح'], ['25', 'شركة'], ['ذكاء اصطناعي', 'في كل خطوة']]
-              : [['335+', 'candidates'], ['25', 'companies'], ['AI', 'at every step']]
+              ? [[stats.arCandidates, 'مرشح'], [stats.arCompanies, 'شركة'], ['ذكاء اصطناعي', 'في كل خطوة']]
+              : [[stats.candidates, 'candidates'], [stats.companies, 'companies'], ['AI', 'at every step']]
             ).map(([v, l]) => (
               <div key={l}><div style={{ fontSize: 22, fontWeight: 800, fontFamily: isAr ? 'inherit' : "'IBM Plex Mono',monospace" }}>{v}</div><div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.55)' }}>{l}</div></div>
             ))}

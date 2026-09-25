@@ -48,21 +48,21 @@ interface PlatformStatsPayload {
 
 const DEFAULT_PLATFORM_STATS: PlatformStatsPayload = {
   stats: {
-    totalUsers: 27,
+    totalUsers: 109,
     totalJobs: 1,
-    totalApplications: 21,
-    totalJobViews: 4692,
-    closedJobs: 0,
-    totalCompanies: 1,
-    averageAtsScore: 50,
+    totalApplications: 107,
+    totalJobViews: 8394,
+    closedJobs: 3,
+    totalCompanies: 5,
+    averageAtsScore: 47,
   },
   allTime: {
-    users: 782,
-    jobs: 55,
-    applications: 572,
-    closedJobs: 0,
-    workspaces: 3,
-    views: 4692,
+    users: 983,
+    jobs: 57,
+    applications: 755,
+    closedJobs: 3,
+    workspaces: 5,
+    views: 8394,
   },
   sparklines: {
     users: [{ i: 0, v: 2 }, { i: 1, v: 4 }, { i: 2, v: 5 }, { i: 3, v: 3 }, { i: 4, v: 7 }, { i: 5, v: 4 }, { i: 6, v: 2 }],
@@ -244,8 +244,8 @@ const Landing: React.FC = () => {
   const kpiCards = [
     {
       name: 'Total Users',
-      value: platformStats.allTime?.users ?? 782,
-      delta: `+${platformStats.stats?.totalUsers ?? 27} this week`,
+      value: (platformStats.allTime?.users ?? 983).toLocaleString(),
+      delta: `+${platformStats.stats?.totalUsers ?? 109} this week`,
       deltaTone: 'brand' as const,
       icon: Users,
       color: '#6366F1',
@@ -253,7 +253,7 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Jobs Posted',
-      value: platformStats.allTime?.jobs ?? 55,
+      value: platformStats.allTime?.jobs ?? 57,
       delta: `+${platformStats.stats?.totalJobs ?? 1} this week`,
       deltaTone: 'brand' as const,
       icon: FileText,
@@ -262,8 +262,8 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Applications',
-      value: platformStats.allTime?.applications ?? 571,
-      delta: `+${platformStats.stats?.totalApplications ?? 21} this week`,
+      value: (platformStats.allTime?.applications ?? 755).toLocaleString(),
+      delta: `+${platformStats.stats?.totalApplications ?? 107} this week`,
       deltaTone: 'ok' as const,
       icon: Send,
       color: '#10B981',
@@ -271,7 +271,7 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Job Views',
-      value: (platformStats.allTime?.views ?? platformStats.stats?.totalJobViews ?? 4695).toLocaleString(),
+      value: (platformStats.allTime?.views ?? platformStats.stats?.totalJobViews ?? 8394).toLocaleString(),
       delta: 'Live views',
       deltaTone: 'ok' as const,
       icon: Eye,
@@ -280,7 +280,7 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Companies',
-      value: platformStats.allTime?.workspaces ?? 3,
+      value: platformStats.allTime?.workspaces ?? 5,
       delta: 'Verified',
       deltaTone: 'brand' as const,
       icon: Building2,
@@ -289,12 +289,12 @@ const Landing: React.FC = () => {
     },
     {
       name: 'Avg ATS Score',
-      value: `${platformStats.stats?.averageAtsScore ?? 45}%`,
+      value: `${platformStats.stats?.averageAtsScore ?? 47}%`,
       delta: '+3 points',
       deltaTone: 'brand' as const,
       icon: BarChart3,
       color: '#6D5BF5',
-      ringProgress: platformStats.stats?.averageAtsScore ?? 45,
+      ringProgress: platformStats.stats?.averageAtsScore ?? 47,
     },
   ];
 
@@ -600,7 +600,9 @@ const Landing: React.FC = () => {
         <section id="contact" style={{ ...container, padding: '40px 24px 60px' }}>
           <div style={{ background: 'var(--grad)', borderRadius: 28, padding: '52px 44px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
             <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 12px', color: '#fff' }}>Tell your story right. With AI.</h2>
-            <p style={{ fontSize: 16, color: 'rgba(255,255,255,.9)', margin: '0 0 26px' }}>Join 335+ candidates and 25 companies already hiring on Nagm.</p>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,.9)', margin: '0 0 26px' }}>
+              Join {(platformStats.allTime?.users ?? 983).toLocaleString()}+ candidates and {(platformStats.allTime?.workspaces ?? 5)} companies already hiring on Nagm.
+            </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button onClick={goRegister} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: 'none', background: '#fff', color: 'var(--brandInk)', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Build your CV — free</button>
               <button onClick={goRecruiter} style={{ height: 50, padding: '0 26px', borderRadius: 13, border: '1px solid rgba(255,255,255,.4)', background: 'rgba(255,255,255,.12)', color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, cursor: 'pointer' }}>Hire with Nagm</button>
