@@ -17,8 +17,9 @@ const consoleForwardPlugin = (): Plugin => ({
           const payload = JSON.parse(body)
           const { level = 'log', args = [], source = 'client' } = payload || {}
           const prefix = `[${source}]`
-          const method = (console as any)[level] ? level : 'log'
-          ;(console as any)[method](prefix, ...args)
+          const logger = console as unknown as Record<string, (...args: unknown[]) => void>
+          const method = typeof logger[level] === 'function' ? level : 'log'
+          logger[method](prefix, ...args)
         }
       } catch (e) {
         console.error('[console-forward] failed to parse log payload', e)

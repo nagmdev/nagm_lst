@@ -14,13 +14,6 @@ type AuthText = ReturnType<typeof useAuthText>;
 
 type AuthMode = 'signup' | 'login';
 
-const INDUSTRIES = [
-  'Technology', 'Healthcare', 'Finance', 'Education', 'Consulting',
-  'E-commerce', 'Manufacturing', 'Media', 'Real Estate', 'Energy',
-  'Telecommunications', 'Transportation', 'Hospitality', 'Retail', 'Other',
-];
-
-const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'];
 
 const COUNTRY_CODES: Record<string, string> = {
   'Egypt': '(+20)', 'Saudi Arabia': '(+966)', 'United Arab Emirates': '(+971)',

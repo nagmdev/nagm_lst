@@ -467,8 +467,8 @@ const Landing: React.FC = () => {
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          color: k.deltaTone === 'ok' ? 'var(--ok)' : k.deltaTone === 'warn' ? 'var(--warn)' : 'var(--brandInk)',
-                          background: k.deltaTone === 'ok' ? 'var(--okSoft)' : k.deltaTone === 'warn' ? 'var(--warnSoft)' : 'var(--brandSoft)',
+                          color: k.deltaTone === 'ok' ? 'var(--ok)' : 'var(--brandInk)',
+                          background: k.deltaTone === 'ok' ? 'var(--okSoft)' : 'var(--brandSoft)',
                           marginLeft: 'auto',
                         }}
                       >
