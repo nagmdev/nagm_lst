@@ -34,9 +34,16 @@ export default function Root() {
         <Route path="/why-nagm" element={<WhyNagmPage />} />
         <Route path="/about" element={<AboutPage />} />
 
-        {/* Redirect all job and shared application links directly to app.nagm.io */}
+        {/* Redirect all job, recruiter, and shared application links directly to app.nagm.io */}
         <Route path="/jobs" element={<RedirectToApp />} />
         <Route path="/jobs/*" element={<RedirectToApp />} />
+        <Route path="/recruiters/:id" element={<RedirectToApp />} />
+        <Route path="/recruiters/*" element={<RedirectToApp />} />
+        <Route path="/resume-builder" element={<RedirectToApp />} />
+        <Route path="/ats" element={<RedirectToApp />} />
+        <Route path="/ats/*" element={<RedirectToApp />} />
+        <Route path="/practice" element={<RedirectToApp />} />
+        <Route path="/practice/*" element={<RedirectToApp />} />
         <Route path="/p/:token" element={<RedirectToApp />} />
         <Route path="/invite/:token" element={<RedirectToApp />} />
         <Route path="/co/:key" element={<RedirectToApp />} />

@@ -2,12 +2,13 @@ import axios from 'axios';
 
 // nagm.io hosts sign-in/up and talks to the production API, then hands the
 // session off to the app on app.nagm.io.
-const API_BASE = 'https://backend-yqpd.vercel.app/api';
-export const APP_ORIGIN = 'https://app.nagm.io';
+const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_API) || 'https://backend-yqpd.vercel.app/api';
+export const APP_ORIGIN = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_ORIGIN) || 'https://app.nagm.io';
 
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 export interface Tokens {

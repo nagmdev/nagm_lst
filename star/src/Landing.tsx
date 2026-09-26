@@ -8,7 +8,7 @@ import {
   Building2,
   BarChart3,
 } from 'lucide-react';
-import { api } from './auth';
+import { api, APP_ORIGIN } from './auth';
 import { MegaMenu } from './components/MegaMenu';
 import './landing.css';
 
@@ -315,7 +315,7 @@ const Landing: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} className="ng-topbar-search">
             <MegaMenu />
             <a
-              href="https://app.nagm.io/jobs"
+              href={`${APP_ORIGIN}/jobs`}
               style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink2)', textDecoration: 'none', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
             >
               Jobs
@@ -525,7 +525,7 @@ const Landing: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 22 }}>
                 {hrBullets.map((b) => (<div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'rgba(255,255,255,.92)' }}><Check color="var(--cyan)" />{b}</div>))}
               </div>
-              <button onClick={goRegister} style={{ height: 44, padding: '0 20px', borderRadius: 11, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.1)', color: '#fff', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+              <button onClick={goRecruiter} style={{ height: 44, padding: '0 20px', borderRadius: 11, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.1)', color: '#fff', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 Explore recruiter app<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d={ARROW} /></svg>
               </button>
             </div>
@@ -580,7 +580,7 @@ const Landing: React.FC = () => {
           </div>
           <div className="ng-dash-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 18 }}>
             {pricing.map((p) => (
-              <div key={p.name} style={{ background: p.featured ? 'var(--inkPanel)' : 'var(--panel)', border: `1px solid ${p.featured ? 'var(--brandBorder)' : 'var(--line)'}`, borderRadius: 18, padding: '26px 22px', position: 'relative', boxShadow: p.featured ? 'var(--shadowLg)' : 'none' }}>
+              <div key={p.name} style={{ background: p.featured ? 'var(--inkPanel)' : 'var(--panel)', border: `1px solid ${p.featured ? 'var(--brandBorder)' : 'var(--line)'}`, borderRadius: 18, padding: '26px 22px', position: 'relative', boxShadow: p.featured ? 'var(--shadowLg)' : 'none', display: 'flex', flexDirection: 'column' }}>
                 {p.featured && <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#fff', background: 'var(--grad)', padding: '3px 9px', borderRadius: 20 }}>Popular</div>}
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: p.featured ? 'var(--cyan)' : 'var(--brandInk)', marginBottom: 12 }}>{p.aud}</div>
                 <h3 style={{ fontSize: 17, fontWeight: 800, color: p.featured ? '#fff' : 'var(--ink)', margin: 0, marginBottom: 6 }}>{p.name}</h3>
@@ -588,9 +588,29 @@ const Landing: React.FC = () => {
                   <span style={{ fontSize: 30, fontWeight: 800, color: p.featured ? '#fff' : 'var(--ink)', fontFamily: "'IBM Plex Mono',monospace" }}>{p.price}</span>
                   <span style={{ fontSize: 13, color: p.featured ? 'rgba(255,255,255,.5)' : 'var(--ink3)' }}>{p.per}</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
                   {p.feats.map((f) => (<div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: p.featured ? 'rgba(255,255,255,.85)' : 'var(--ink2)' }}><Check color={p.featured ? 'var(--cyan)' : 'var(--brand)'} />{f}</div>))}
                 </div>
+                <button
+                  onClick={p.aud === 'Candidate' ? goRegister : goRecruiter}
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    borderRadius: 10,
+                    border: p.featured ? 'none' : '1px solid var(--line)',
+                    background: p.featured ? 'var(--grad)' : 'var(--panel)',
+                    color: p.featured ? '#fff' : 'var(--ink)',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    marginTop: 'auto',
+                    display: 'block',
+                    textAlign: 'center',
+                    boxShadow: p.featured ? '0 4px 14px var(--brandShadow)' : 'none',
+                  }}
+                >
+                  {p.aud === 'Candidate' ? (p.price === '$0' ? 'Get started free' : 'Upgrade to Pro') : (p.price === 'Custom' ? 'Contact sales' : 'Start hiring now')}
+                </button>
               </div>
             ))}
           </div>
