@@ -208,7 +208,6 @@ const Landing: React.FC = () => {
       api
         .get<PlatformStatsPayload>('/public/platform-stats', {
           params: { _t: Date.now() },
-          headers: { 'Cache-Control': 'no-cache' },
         })
         .then((res) => {
           if (active && res.data && res.data.stats) {
