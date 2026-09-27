@@ -81,3 +81,24 @@ describe('handoffToApp', () => {
     expect(href).toBe('');
   });
 });
+
+describe('api backend URL security and fallback', () => {
+  it('rewrites requests targeted at nagm-backend to backend-yqpd', async () => {
+    // Test that the interceptor rewrites both baseURL and url
+    const requestHandlers = (api.interceptors.request as any).handlers;
+    expect(requestHandlers.length).toBeGreaterThan(0);
+    const interceptor = requestHandlers[0].fulfilled;
+
+    const modifiedConfig = interceptor({
+      baseURL: 'https://nagm-backend.vercel.app/api',
+      url: '/auth/request-password-reset',
+    });
+    expect(modifiedConfig.baseURL).toBe('https://backend-yqpd.vercel.app/api');
+
+    const modifiedUrlConfig = interceptor({
+      url: 'https://nagm-backend.vercel.app/api/public/platform-stats',
+    });
+    expect(modifiedUrlConfig.url).toBe('https://backend-yqpd.vercel.app/api/public/platform-stats');
+  });
+});
+

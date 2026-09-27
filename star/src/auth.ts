@@ -2,13 +2,27 @@ import axios from 'axios';
 
 // nagm.io hosts sign-in/up and talks to the production API, then hands the
 // session off to the app on app.nagm.io.
-const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_API) || 'https://backend-yqpd.vercel.app/api';
+const rawApi = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_API) as string | undefined;
+export const API_BASE = (rawApi && !rawApi.includes('nagm-backend.vercel.app'))
+  ? rawApi
+  : 'https://backend-yqpd.vercel.app/api';
 export const APP_ORIGIN = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_ORIGIN) || 'https://app.nagm.io';
 
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
+});
+
+// Guard against obsolete/broken backend deployments at request time
+api.interceptors.request.use((config) => {
+  if (config.baseURL && config.baseURL.includes('nagm-backend.vercel.app')) {
+    config.baseURL = 'https://backend-yqpd.vercel.app/api';
+  }
+  if (config.url && config.url.includes('nagm-backend.vercel.app')) {
+    config.url = config.url.replace('https://nagm-backend.vercel.app/api', 'https://backend-yqpd.vercel.app/api');
+  }
+  return config;
 });
 
 export interface Tokens {

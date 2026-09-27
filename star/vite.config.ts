@@ -33,8 +33,20 @@ const consoleForwardPlugin = (): Plugin => ({
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, process.cwd(), '')
+
+  // Prevent obsolete/broken backend from being inlined into Vite build
+  if (process.env.VITE_BACKEND_API && process.env.VITE_BACKEND_API.includes('nagm-backend.vercel.app')) {
+    process.env.VITE_BACKEND_API = 'https://backend-yqpd.vercel.app/api';
+  }
   
   return {
+    define: {
+      'import.meta.env.VITE_BACKEND_API': JSON.stringify(
+        process.env.VITE_BACKEND_API && !process.env.VITE_BACKEND_API.includes('nagm-backend.vercel.app')
+          ? process.env.VITE_BACKEND_API
+          : 'https://backend-yqpd.vercel.app/api'
+      ),
+    },
     plugins: [react(), consoleForwardPlugin()],
     optimizeDeps: {
       exclude: ['lucide-react'],
