@@ -276,7 +276,7 @@ body {
 }
 
 .ng-megamenu-column:not(:last-child) {
-  border-right: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line);
 }
 
 .ng-megamenu-col-header {
@@ -320,6 +320,10 @@ body {
 .ng-megamenu-item:hover {
   background: var(--hover);
   transform: translateX(3px);
+}
+
+[dir="rtl"] .ng-megamenu-item:hover {
+  transform: translateX(-3px);
 }
 
 .ng-item-icon-box {
