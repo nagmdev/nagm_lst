@@ -209,6 +209,27 @@ describe('recruiter joining an existing company', () => {
     fireEvent.blur(screen.getByLabelText(/^LinkedIn Profile/));
     expect(await screen.findByText('Enter a valid linkedin.com profile link')).toBeInTheDocument();
   });
+
+  it('company sign-up sends separate companyName and representative firstName / lastName', async () => {
+    renderSignup('/register?role=company');
+    type(/^Company Name/, 'Tie Apps');
+    type(/^First Name/, 'Mahmoud');
+    type(/^Last Name/, 'Hashim');
+    type(/^Business Email/, 'admin@tieapps.com');
+    type(/^Phone Number/, '01012345678');
+    type(/^Password/, 'Str0ngPass!');
+    type(/^Confirm Password/, 'Str0ngPass!');
+    acceptTerms();
+    submit();
+    await screen.findByText('verify page');
+    expect(api.register).toHaveBeenCalledWith(expect.objectContaining({
+      role: 'company',
+      companyName: 'Tie Apps',
+      firstName: 'Mahmoud',
+      lastName: 'Hashim',
+      email: 'admin@tieapps.com',
+    }));
+  });
 });
 
 describe('Arabic / RTL', () => {

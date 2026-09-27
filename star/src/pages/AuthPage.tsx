@@ -289,7 +289,7 @@ const AuthPage: React.FC = () => {
         ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []),
         'linkedInProfile', 'password', 'confirmPassword',
       ];
-      case 'company': return ['companyName', 'businessEmail', 'phone', 'password', 'confirmPassword'];
+      case 'company': return ['companyName', 'firstName', 'lastName', 'businessEmail', 'phone', 'password', 'confirmPassword'];
     }
   };
 
@@ -366,6 +366,8 @@ const AuthPage: React.FC = () => {
         }
       } else {
         payload.companyName = values.companyName.trim();
+        if (values.firstName.trim()) payload.firstName = values.firstName.trim();
+        if (values.lastName.trim()) payload.lastName = values.lastName.trim();
         if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
         payload.industry = values.industry;
         payload.companySize = values.companySize;
@@ -741,7 +743,11 @@ const AuthPage: React.FC = () => {
   const companyForm = () => (
     <>
       {approvalNote()}
-      {field('companyName', t.companyName, { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
+      {field('companyName', t.companyName, { placeholder: t.isAr ? 'مثال: شركة تاي ابس' : 'Acme Corp', icon: <Building2 size={15} /> })}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        {field('firstName', t.isAr ? 'الاسم الأول (المسؤول)' : 'First Name (Admin)', { autoComplete: 'given-name', placeholder: t.isAr ? 'محمود' : 'John' })}
+        {field('lastName', t.isAr ? 'اسم العائلة' : 'Last Name', { autoComplete: 'family-name', placeholder: t.isAr ? 'هاشم' : 'Doe' })}
+      </div>
       {field('businessEmail', t.businessEmail, { type: 'email', placeholder: 'hello@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
       {countryPhoneRow()}
       {passwordField('password', t.password, 'new-password')}
