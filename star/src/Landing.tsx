@@ -7,8 +7,10 @@ import {
   Eye,
   Building2,
   BarChart3,
+  Globe,
 } from 'lucide-react';
 import { api, APP_ORIGIN } from './auth';
+import { useLang, setLang } from './i18n/lang';
 import { MegaMenu } from './components/MegaMenu';
 import './landing.css';
 
@@ -187,6 +189,8 @@ const Spark = ({ size = 14, fill = '#fff' }: { size?: number; fill?: string }) =
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
+  const lang = useLang();
+  const isAr = lang === 'ar';
   const goRegister = () => navigate('/register');
   // "Hire with Nagm" opens sign-up with the Recruiter account type preselected.
   const goRecruiter = () => navigate('/register', { state: { role: 'recruiter' } });
@@ -198,6 +202,10 @@ const Landing: React.FC = () => {
     const el = document.documentElement;
     el.classList.toggle('dark');
     setDark(el.classList.contains('dark'));
+  };
+
+  const toggleLanguage = () => {
+    setLang(lang === 'ar' ? 'en' : 'ar');
   };
 
   const [platformStats, setPlatformStats] = useState<PlatformStatsPayload>(DEFAULT_PLATFORM_STATS);
@@ -335,15 +343,40 @@ const Landing: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <button onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              title={isAr ? 'Switch to English' : 'التبديل إلى العربية'}
+              aria-label={isAr ? 'Switch to English' : 'التبديل إلى العربية'}
+              lang={isAr ? 'en' : 'ar'}
+              style={{
+                height: 44,
+                minHeight: 44,
+                padding: '0 12px',
+                borderRadius: 10,
+                border: '1px solid var(--line)',
+                background: 'var(--panel)',
+                color: 'var(--ink)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              <Globe size={16} style={{ color: 'var(--brand)' }} />
+              <span>{isAr ? 'English' : 'عربي'}</span>
+            </button>
+            <button onClick={toggleTheme} title={isAr ? 'تبديل المظهر' : 'Toggle theme'} aria-label={isAr ? 'تبديل المظهر' : 'Toggle theme'} aria-pressed={dark} style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {dark ? (
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
               ) : (
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
               )}
             </button>
-            <button onClick={goLogin} style={{ height: 44, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
-            <button onClick={goRegister} style={{ height: 44, minHeight: 44, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px var(--brandShadow)' }}>Get started</button>
+            <button onClick={goLogin} style={{ height: 44, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{isAr ? 'تسجيل الدخول' : 'Sign in'}</button>
+            <button onClick={goRegister} style={{ height: 44, minHeight: 44, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px var(--brandShadow)' }}>{isAr ? 'ابدأ الآن' : 'Get started'}</button>
           </div>
         </div>
       </nav>

@@ -35,4 +35,11 @@ describe('Landing page enhancements', () => {
     expect(companyPlanBtn).toBeInTheDocument();
     expect(enterprisePlanBtn).toBeInTheDocument();
   });
+
+  it('renders language switch button in the navigation header', () => {
+    render(<MockLandingContainer />);
+    const langBtn = screen.getByRole('button', { name: /(Switch to English|التبديل إلى العربية)/i });
+    expect(langBtn).toBeInTheDocument();
+    fireEvent.click(langBtn);
+  });
 });
