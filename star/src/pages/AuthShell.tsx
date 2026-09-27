@@ -26,8 +26,10 @@ const AuthShell: React.FC<{ title: string; subtitle: React.ReactNode; children: 
     let active = true;
     api
       .get('/public/platform-stats', {
+        // `_t` already defeats caching. A Cache-Control request header adds a
+        // CORS preflight the API must allow, and a backend that doesn't blocks
+        // the call outright.
         params: { _t: Date.now() },
-        headers: { 'Cache-Control': 'no-cache' },
       })
       .then((res) => {
         if (!active || !res.data) return;
