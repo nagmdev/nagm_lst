@@ -39,6 +39,36 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       exclude: ['lucide-react'],
     },
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
+    },
+    build: {
+      sourcemap: false,
+      minify: 'esbuild',
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (
+                id.includes('/react/') ||
+                id.includes('/react-dom/') ||
+                id.includes('/react-router/') ||
+                id.includes('/react-router-dom/')
+              ) {
+                return 'vendor-react';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-lucide';
+              }
+              if (id.includes('axios')) {
+                return 'vendor-axios';
+              }
+            }
+          },
+        },
+      },
+    },
   server: {
     // Let anything in during dev. Yes, anything. Try not to cry later.
     host: '0.0.0.0',             // listen on all addresses (important for PM2)
