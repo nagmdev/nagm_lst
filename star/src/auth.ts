@@ -80,7 +80,14 @@ export async function handoffToApp(t: Tokens, rememberMe: boolean, returnTo?: st
   );
   // Used to always land on the app's home page: the invite or email link that
   // brought the person here was lost, and they had to find it again.
-  window.location.href = `${APP_ORIGIN}${appPathFor(returnTo)}#code=${encodeURIComponent(data.code)}`;
+  //
+  // `replace`, not `href =`. Assigning href PUSHES a history entry and leaves
+  // this sign-in page underneath the app, so Back from inside app.nagm.io
+  // returned here - restored from the back-forward cache, frozen mid-submit
+  // with the button still disabled, because a successful sign-in navigates
+  // away and never resets `busy`. Replacing swaps the sign-in page for the app
+  // in the same slot, so Back goes wherever the person was before signing in.
+  window.location.replace(`${APP_ORIGIN}${appPathFor(returnTo)}#code=${encodeURIComponent(data.code)}`);
 }
 
 // The password typed at sign-up (or at a sign-in that needs verification) is

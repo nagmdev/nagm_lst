@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { api, handoffToApp, APP_ORIGIN } from './auth';
 
 let href = '';
+let replaced = false;
 let cookieWrites: string[] = [];
 const realLocation = window.location;
 
@@ -10,12 +11,17 @@ const stubPage = (url: string) => {
   const u = new URL(url);
   Object.defineProperty(window, 'location', {
     configurable: true,
-    value: { protocol: u.protocol, hostname: u.hostname, origin: u.origin, set href(v: string) { href = v; }, get href() { return url; } },
+    value: {
+      protocol: u.protocol, hostname: u.hostname, origin: u.origin,
+      set href(v: string) { href = v; replaced = false; }, get href() { return url; },
+      replace(v: string) { href = v; replaced = true; },
+    },
   });
 };
 
 beforeEach(() => {
   href = '';
+  replaced = false;
   cookieWrites = [];
   vi.spyOn(document, 'cookie', 'set').mockImplementation((v: string) => { cookieWrites.push(v); });
 });
@@ -25,6 +31,25 @@ afterEach(() => {
 });
 
 describe('handoffToApp', () => {
+  /**
+   * The sign-in page must not stay behind in history.
+   *
+   * The hand-off used to navigate with `location.href = ...`, which PUSHES a
+   * new entry and leaves nagm.io/login underneath app.nagm.io. Pressing Back
+   * from inside the app then returned to the sign-in form - and returned to it
+   * from the back-forward cache, frozen mid-submit with the button still
+   * disabled, because the success path navigates away and never resets `busy`.
+   * `replace` swaps the sign-in page for the app in the same history slot, so
+   * Back goes wherever the person was before they chose to sign in.
+   */
+  it('replaces the sign-in page in history instead of pushing on top of it', async () => {
+    stubPage('https://nagm.io/login');
+    vi.spyOn(api, 'post').mockResolvedValue({ data: { code: 'abc123' } });
+    await handoffToApp({ accessToken: 'acc', refreshToken: 'ref' }, true, null);
+    expect(replaced).toBe(true);
+    expect(href).toContain('#code=abc123');
+  });
+
   it('binds the code to a fresh nonce cookie on .nagm.io and lands on the requested app page', async () => {
     stubPage('https://nagm.io/login');
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { code: 'abc123' } });

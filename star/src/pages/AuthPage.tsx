@@ -5,6 +5,7 @@ import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
 import { authApi, handoffToApp, apiError, rememberPendingSignIn } from '../auth';
+import { useBfcacheReset } from '../utils/useBfcacheReset';
 import type { AccountRole, RegisterPayload, CompanyOption } from '../auth';
 import { emailError, emailSuggestion, phoneError, phoneExample, normalizePhone, COUNTRY_NAMES_AR } from '../utils/contact';
 import { linkIssue } from '../utils/links';
@@ -110,6 +111,15 @@ const AuthPage: React.FC = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // A successful sign-in sets `busy` and navigates away without resetting it.
+  // If the browser keeps this page in its back-forward cache, Back restores it
+  // exactly as it was - button disabled, no effects re-run - and the person
+  // cannot sign in without a reload. Put the form back into a usable state.
+  useBfcacheReset(() => {
+    setBusy(false);
+    setTransitioning(false);
+  });
   // Briefly true right after a failed submit — drives the one-shot shake/glow on
   // every invalid field so a re-submit replays the effect instead of going stale.
   const [animatingErrors, setAnimatingErrors] = useState(false);
