@@ -6,6 +6,7 @@ import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
 import { authApi, handoffToApp, apiError, rememberPendingSignIn } from '../auth';
 import { useBfcacheReset } from '../utils/useBfcacheReset';
+import { signInPasswordIssue } from '../utils/signInPassword';
 import type { AccountRole, RegisterPayload, CompanyOption } from '../auth';
 import { emailError, emailSuggestion, phoneError, phoneExample, normalizePhone, COUNTRY_NAMES_AR } from '../utils/contact';
 import { linkIssue } from '../utils/links';
@@ -254,7 +255,12 @@ const AuthPage: React.FC = () => {
       case 'phone': err = phoneError(v, values.country, false, t.lang); break;
       case 'linkedInProfile': err = linkIssue('linkedin', v) ? t.invalidLinkedIn : ''; break;
       case 'websiteUrl': err = linkIssue('website', v) ? t.invalidWebsite : ''; break;
-      case 'password': err = passwordIssue(values.password, t); break;
+      // Signing in checks an EXISTING password, which only the server can judge;
+      // the full policy belongs where a password is being chosen. See
+      // utils/signInPassword for how the old behaviour locked people out.
+      case 'password':
+        err = authMode === 'login' ? signInPasswordIssue(values.password, t) : passwordIssue(values.password, t);
+        break;
       case 'confirmPassword':
         err = !v ? t.confirmRequired : v !== values.password ? t.passwordsDontMatch : '';
         break;
