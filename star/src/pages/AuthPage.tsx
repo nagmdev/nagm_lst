@@ -128,7 +128,7 @@ const AuthPage: React.FC = () => {
   const [remember, setRemember] = useState(true);
   // A recruiter joins an existing company, creates a new one, or works
   // independently (a freelance recruiter with no company yet).
-  const [companyMode, setCompanyMode] = useState<'join' | 'create' | 'independent'>('join');
+  const [companyMode, setCompanyMode] = useState<'join' | 'independent'>('join');
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState<CompanyOption[]>([]);
   const [pickedCompany, setPickedCompany] = useState<CompanyOption | null>(null);
@@ -300,7 +300,7 @@ const AuthPage: React.FC = () => {
       case 'recruiter': return [
         'firstName', 'lastName', 'companyEmail',
         // Independent (freelancer) recruiters have no company to validate.
-        ...(companyMode === 'join' ? ['company'] : companyMode === 'create' ? ['companyName'] : []),
+        ...(companyMode === 'join' ? ['company'] : []),
         'phone', 'jobTitle',
         ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []),
         'linkedInProfile', 'password', 'confirmPassword',
@@ -371,14 +371,11 @@ const AuthPage: React.FC = () => {
         payload.jobTitle = (values.jobTitle === 'Other' ? values.jobTitleOther : values.jobTitle).trim();
         payload.linkedInProfile = values.linkedInProfile.trim();
         // Joining sends the chosen company's id (a request their admin approves);
-        // creating sends the new company's details and makes them its owner;
-        // independent (freelancer) sends no company at all.
+        // independent (freelancer) sends no company at all. A NEW company is
+        // registered through company sign-up, which Nagm verifies (KYB) first.
         if (companyMode === 'join' && pickedCompany) {
           payload.joinCompanyId = pickedCompany.id;
           payload.companyName = pickedCompany.name;
-        } else if (companyMode === 'create') {
-          payload.companyName = values.companyName.trim();
-          if (values.websiteUrl.trim()) payload.websiteUrl = values.websiteUrl.trim();
         }
       } else {
         payload.companyName = values.companyName.trim();
@@ -397,6 +394,29 @@ const AuthPage: React.FC = () => {
         rememberPendingSignIn(email, values.password);
         navigate('/verify', { state: { email, rememberMe: true, returnTo } });
       } catch (e2) {
+        const resp = (e2 as { response?: { status?: number; data?: { guestAccount?: boolean } } })?.response;
+        if (resp?.status === 409 && resp.data?.guestAccount) {
+          // They applied to a job as a guest. Sign-up no longer writes to that
+          // account; they finish it by setting a password with an emailed code,
+          // which proves the inbox first.
+          try {
+            await authApi.requestPasswordReset(email);
+          } catch {
+            // The code can be resent from the next screen.
+          }
+          setForgotEmail(email);
+          setForgotOtp('');
+          setNewPassword('');
+          setConfirmNewPassword('');
+          setForgotErr('');
+          setForgotMsg(t.guestFinishAccount(email));
+          setResendCooldown(60);
+          setForgotMode('reset');
+          setAuthMode('login');
+          setBusy(false);
+          navigate({ pathname: '/login', search: location.search }, { replace: true });
+          return;
+        }
         setError(tr(apiError(e2, t.failCreate)));
         setBusy(false);
       }
@@ -633,7 +653,6 @@ const AuthPage: React.FC = () => {
 
   const companyModes = [
     ['join', t.joinExisting, Building2],
-    ['create', t.createNew, Briefcase],
     ['independent', t.independent, User],
   ] as const;
 
@@ -646,13 +665,14 @@ const AuthPage: React.FC = () => {
       </div>
       {field('companyEmail', t.email, { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
 
-      {/* A recruiter joins an existing company, creates one (never a duplicate),
-          or works independently as a freelance recruiter with no company. */}
+      {/* A recruiter joins an existing company or works independently as a
+          freelance recruiter. A new company registers as a company and is
+          verified first — a recruiter can no longer create one here. */}
       <div style={{ marginBottom: 16 }}>
         <div id="company-mode-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
           {t.yourCompany}
         </div>
-        <div role="radiogroup" aria-labelledby="company-mode-label" className="ng-company-modes" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <div role="radiogroup" aria-labelledby="company-mode-label" className="ng-company-modes" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
           {companyModes.map(([val, label, Icon]) => {
             const active = companyMode === val;
             return (
@@ -726,14 +746,13 @@ const AuthPage: React.FC = () => {
             )}
             {errorText('company')}
           </>
-        ) : companyMode === 'create' ? (
-          <>
-            {field('companyName', t.companyName, { placeholder: 'Acme Corp', icon: <Building2 size={15} /> })}
-            <p style={{ fontSize: 12, color: 'var(--ink3)', margin: 0 }}>{t.ownerNote}</p>
-          </>
         ) : (
           <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>{t.independentNote}</p>
         )}
+        <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '10px 0 0', lineHeight: 1.5 }}>
+          {t.newCompanyPrompt}{' '}
+          <button type="button" onClick={() => switchRole('company')} style={linkButton}>{t.registerCompanyLink}</button>
+        </p>
       </div>
       {countryPhoneRow()}
       <div style={{ marginBottom: 16 }}>
