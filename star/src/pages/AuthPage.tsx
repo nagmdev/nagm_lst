@@ -630,9 +630,9 @@ const AuthPage: React.FC = () => {
       fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.45,
     }}>
       <Check size={15} aria-hidden="true" style={{ color: 'var(--brand)', flexShrink: 0, marginTop: 1 }} />
-      {/* There is no human review step any more — a company goes live the moment
-          it registers. Promising an approval that never comes left people
-          waiting for an email that was never going to arrive. */}
+      {/* A company is reviewed before it can hire: KYB documents go to Nagm and
+          the company exists once an admin approves them. A recruiter needs no
+          approval of their own; they join a company. */}
       <span>{role === 'company' ? t.approvalCompany : t.approvalRecruiter}</span>
     </div>
   );
