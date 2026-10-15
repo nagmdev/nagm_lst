@@ -3,7 +3,7 @@
  * are mocked, so nothing leaves the test.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import AuthPage from './AuthPage';
@@ -17,6 +17,7 @@ vi.mock('../auth', async (importOriginal) => {
     authApi: {
       ...actual.authApi,
       register: vi.fn(),
+      requestPasswordReset: vi.fn(),
       login: vi.fn(),
       searchCompanies: vi.fn(),
     },
@@ -182,6 +183,20 @@ describe('a valid sign-up', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Email already exists');
     expect(screen.getByRole('button', { name: /Create .* Account/ })).not.toBeDisabled();
   });
+
+  it('sends a guest applicant to set a password by emailed code instead of creating anything (SEC-16)', async () => {
+    api.register.mockRejectedValue({ response: { status: 409, data: { error: 'You have already applied with this email.', guestAccount: true } } });
+    api.requestPasswordReset.mockResolvedValue({ message: 'ok' });
+    renderSignup();
+    fillCandidate();
+    acceptTerms();
+    submit();
+    expect(await screen.findByLabelText('6-digit verification code')).toBeInTheDocument();
+    expect(api.requestPasswordReset).toHaveBeenCalledWith('sara@example.com');
+    expect(screen.getByText(/You already applied to a job with sara@example.com/)).toBeInTheDocument();
+    expect(lastVerifyState).toBeNull();
+    expect(pendingSignInFor('sara@example.com')).toBeFalsy();
+  });
 });
 
 describe('recruiter joining an existing company', () => {
@@ -201,6 +216,15 @@ describe('recruiter joining an existing company', () => {
     submit();
     await screen.findByText('verify page');
     expect(api.register).toHaveBeenCalledWith(expect.objectContaining({ role: 'recruiter', joinCompanyId: 12, companyName: 'Acme', jobTitle: 'Recruiter' }));
+  });
+
+  it('offers no "create a company" option; a new company goes through company sign-up and KYB (SEC-04)', async () => {
+    renderSignup('/register?role=recruiter');
+    const modes = within(screen.getByRole('radiogroup', { name: 'Your company' })).getAllByRole('radio').map((r) => r.textContent?.trim());
+    expect(modes).toEqual(['Join existing', 'Independent']);
+    fireEvent.click(screen.getByRole('button', { name: 'Register your company' }));
+    expect(await screen.findByLabelText(/^Company Name/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Business Email/)).toBeInTheDocument();
   });
 
   it('refuses a javascript: LinkedIn link', async () => {
