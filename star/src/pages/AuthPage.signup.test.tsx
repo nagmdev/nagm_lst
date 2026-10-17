@@ -3,7 +3,7 @@
  * are mocked, so nothing leaves the test.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import AuthPage from './AuthPage';
@@ -218,10 +218,13 @@ describe('recruiter joining an existing company', () => {
     expect(api.register).toHaveBeenCalledWith(expect.objectContaining({ role: 'recruiter', joinCompanyId: 12, companyName: 'Acme', jobTitle: 'Recruiter' }));
   });
 
-  it('offers no "create a company" option; a new company goes through company sign-up and KYB (SEC-04)', async () => {
+  it('only lets a recruiter join an existing company; a new company goes through company sign-up and KYB (SEC-04)', async () => {
     renderSignup('/register?role=recruiter');
-    const modes = within(screen.getByRole('radiogroup', { name: 'Your company' })).getAllByRole('radio').map((r) => r.textContent?.trim());
-    expect(modes).toEqual(['Join existing', 'Independent']);
+    // Joining an existing company is the only recruiter path: no "create" and
+    // no "independent" option (owner decision 2026-10-15).
+    expect(screen.queryByRole('radiogroup', { name: 'Your company' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Independent')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search companies')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Register your company' }));
     expect(await screen.findByLabelText(/^Company Name/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Business Email/)).toBeInTheDocument();
