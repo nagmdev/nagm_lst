@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Globe } from '../design/glyphs';
 import { Icon, type IconName } from '../design/icons';
-import { ChevronField, MatchScene } from '../design/art';
+import { ChevronField } from '../design/art';
+import { MatchCard, ScaleBox } from '../design/mock';
 import { applyLangToDocument, setLang, useLang } from '../i18n/lang';
 
 /** Split-screen auth layout: brand panel on the left, form on the right. */
@@ -39,7 +40,7 @@ const AuthShell: React.FC<{ title: string; subtitle: React.ReactNode; children: 
           <span style={{ fontFamily: 'var(--fontDisplay)', fontSize: 22, fontWeight: 800 }}>{isAr ? 'نجم' : 'Nagm'}</span>
         </a>
         <div style={{ position: 'relative', maxWidth: 440, opacity: 0.92, marginInline: 'auto', width: '100%' }} aria-hidden="true">
-          <MatchScene />
+          <ScaleBox width={420} height={318}><MatchCard /></ScaleBox>
         </div>
         <div style={{ position: 'relative' }}>
           {/* The owner's brand line (footer copy, Oct 2026) — no counts here:

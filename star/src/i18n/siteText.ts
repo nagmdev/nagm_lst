@@ -17,7 +17,11 @@ export interface SiteText {
     products: string; solutions: string; jobs: string; pricing: string; about: string; login: string; start: string;
     forSeekers: string; forSeekersSub: string; forCompanies: string; forCompaniesSub: string;
     productHead: string; solutionsHead: string;
-    productItems: { key: string; title: string; sub: string; to: string }[];
+    productItems: { key: string; group: 'seekers' | 'teams'; title: string; sub: string; to: string }[];
+    groupSeekers: string; groupTeams: string; exploreSeekers: string; exploreTeams: string;
+    featured: { eyebrow: string; title: string; body: string; cta: string };
+    menuFooter: { text: string; start: string; pricing: string };
+    solutionCards: { seekers: { title: string; body: string; cta: string }; teams: { title: string; body: string; cta: string } };
     theme: string; lang: string; menu: string; close: string;
   };
   footer: {
@@ -93,15 +97,22 @@ const ar: SiteText = {
     forCompanies: 'للشركات ومسؤولي التوظيف', forCompaniesSub: 'وظائف، متقدمون، مراحل توظيف، وتعاون الفريق في مساحة واحدة.',
     productHead: 'أدوات نجم', solutionsHead: 'حسب المستخدم',
     productItems: [
-      { key: 'profile', title: 'الملف المهني', sub: 'خبراتك ومهاراتك ولغاتك في ملف واحد.', to: '/job-seekers#profile' },
-      { key: 'cv', title: 'إنشاء السيرة الذاتية', sub: 'أنشئ سيرتك ونظّم نسخها.', to: '/job-seekers#cv' },
-      { key: 'match', title: 'فحص ATS وتحليل التوافق', sub: 'افهم توافق سيرتك مع الوظيفة قبل التقديم.', to: '/job-seekers#match' },
-      { key: 'interview', title: 'التدريب على المقابلات', sub: 'بنك أسئلة ومكتبة لإجاباتك.', to: '/job-seekers#interview' },
-      { key: 'stages', title: 'إدارة المرشحين والمراحل', sub: 'طلبات منظّمة ومراحل توظيف واضحة.', to: '/companies#stages' },
-      { key: 'rediscover', title: 'قاعدة المرشحين وإعادة الاكتشاف', sub: 'ابحث في متقدمي شركتك وأعد اكتشاف المناسبين.', to: '/companies#base' },
-      { key: 'team', title: 'مساحة عمل الفريق', sub: 'أدوار وصلاحيات ودعوات وطلبات انضمام.', to: '/companies#workspace' },
-      { key: 'analytics', title: 'تحليلات التوظيف', sub: 'نظرة عامة حسب الفترة وتصدير إلى Excel.', to: '/companies#analytics' },
+      { key: 'profile', group: 'seekers', title: 'الملف المهني', sub: 'خبراتك ومهاراتك في ملف واحد', to: '/job-seekers#profile' },
+      { key: 'cv', group: 'seekers', title: 'منشئ السيرة الذاتية', sub: 'سيرة منسّقة ونسخ منظمة', to: '/job-seekers#cv' },
+      { key: 'match', group: 'seekers', title: 'فحص ATS', sub: 'توافقك مع الوظيفة قبل التقديم', to: '/job-seekers#match' },
+      { key: 'interview', group: 'seekers', title: 'التدريب على المقابلات', sub: 'بنك أسئلة ومكتبة إجابات', to: '/job-seekers#interview' },
+      { key: 'stages', group: 'teams', title: 'مراحل التوظيف', sub: 'كل مرشح وخطوته التالية', to: '/companies#stages' },
+      { key: 'rediscover', group: 'teams', title: 'قاعدة المرشحين', sub: 'ابحث وأعد اكتشاف المناسبين', to: '/companies#base' },
+      { key: 'team', group: 'teams', title: 'تعاون الفريق', sub: 'ملاحظات وإشارات وصلاحيات', to: '/companies#team' },
+      { key: 'analytics', group: 'teams', title: 'تحليلات التوظيف', sub: 'مسار المتقدمين وتصدير Excel', to: '/companies#analytics' },
     ],
+    groupSeekers: 'للباحثين عن عمل', groupTeams: 'لفرق التوظيف', exploreSeekers: 'كل أدوات المرشح', exploreTeams: 'كل أدوات التوظيف',
+    featured: { eyebrow: 'جرّبها الآن', title: 'افهم مدى توافقك', body: 'حلّل سيرتك أمام متطلبات الوظيفة، واطّلع على التقييم والتوصيات.', cta: 'ابدأ مجانًا' },
+    menuFooter: { text: 'جديد على نجم؟', start: 'أنشئ حسابك', pricing: 'الأسعار' },
+    solutionCards: {
+      seekers: { title: 'للباحثين عن عمل', body: 'ابنِ ملفك، وجهّز سيرتك، وافهم توافقك، واستعد للمقابلات.', cta: 'حلول الباحثين عن عمل' },
+      teams: { title: 'للشركات ومسؤولي التوظيف', body: 'وظائفك ومتقدموك وفريقك ومراحل التوظيف في مساحة واحدة.', cta: 'حلول الشركات' },
+    },
     theme: 'تبديل المظهر', lang: 'Switch to English', menu: 'القائمة', close: 'إغلاق',
   },
   footer: {
@@ -481,15 +492,22 @@ const en: SiteText = {
     forCompanies: 'For companies and recruiters', forCompaniesSub: 'Jobs, applicants, hiring stages and team collaboration in one workspace.',
     productHead: 'Nagm tools', solutionsHead: 'By who you are',
     productItems: [
-      { key: 'profile', title: 'Professional profile', sub: 'Experience, skills and languages in one profile.', to: '/job-seekers#profile' },
-      { key: 'cv', title: 'CV builder', sub: 'Build your CV and keep its versions organised.', to: '/job-seekers#cv' },
-      { key: 'match', title: 'ATS check and match analysis', sub: 'Understand your fit before you apply.', to: '/job-seekers#match' },
-      { key: 'interview', title: 'Interview practice', sub: 'A question bank and a library of your answers.', to: '/job-seekers#interview' },
-      { key: 'stages', title: 'Candidate and stage management', sub: 'Organised applications and clear hiring stages.', to: '/companies#stages' },
-      { key: 'rediscover', title: 'Candidate base and rediscovery', sub: 'Search your applicants and bring back the right ones.', to: '/companies#base' },
-      { key: 'team', title: 'Team workspace', sub: 'Roles, permissions, invitations and join requests.', to: '/companies#workspace' },
-      { key: 'analytics', title: 'Hiring analytics', sub: 'An overview by period, and export to Excel.', to: '/companies#analytics' },
+      { key: 'profile', group: 'seekers', title: 'Professional profile', sub: 'Experience and skills, in one place', to: '/job-seekers#profile' },
+      { key: 'cv', group: 'seekers', title: 'CV builder', sub: 'A formatted CV, versions kept tidy', to: '/job-seekers#cv' },
+      { key: 'match', group: 'seekers', title: 'ATS check', sub: 'Your fit, before you apply', to: '/job-seekers#match' },
+      { key: 'interview', group: 'seekers', title: 'Interview practice', sub: 'Question bank and answer library', to: '/job-seekers#interview' },
+      { key: 'stages', group: 'teams', title: 'Hiring stages', sub: 'Every candidate and their next step', to: '/companies#stages' },
+      { key: 'rediscover', group: 'teams', title: 'Candidate base', sub: 'Search and rediscover past applicants', to: '/companies#base' },
+      { key: 'team', group: 'teams', title: 'Team collaboration', sub: 'Notes, mentions and permissions', to: '/companies#team' },
+      { key: 'analytics', group: 'teams', title: 'Hiring analytics', sub: 'Applicant funnel and Excel export', to: '/companies#analytics' },
     ],
+    groupSeekers: 'For job seekers', groupTeams: 'For hiring teams', exploreSeekers: 'All candidate tools', exploreTeams: 'All hiring tools',
+    featured: { eyebrow: 'Try it now', title: 'Understand your fit', body: 'Analyse your CV against the job requirements and see your score and recommendations.', cta: 'Start for free' },
+    menuFooter: { text: 'New to Nagm?', start: 'Create your account', pricing: 'Pricing' },
+    solutionCards: {
+      seekers: { title: 'For job seekers', body: 'Build your profile, prepare your CV, understand your fit, get ready for interviews.', cta: 'Job seeker solutions' },
+      teams: { title: 'For companies and recruiters', body: 'Your jobs, applicants, team and hiring stages in one workspace.', cta: 'Company solutions' },
+    },
     theme: 'Toggle theme', lang: 'التبديل إلى العربية', menu: 'Menu', close: 'Close',
   },
   footer: {

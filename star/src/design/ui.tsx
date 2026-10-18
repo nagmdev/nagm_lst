@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { APP_ORIGIN } from '../auth';
 import { useLang, setLang, applyLangToDocument } from '../i18n/lang';
 import { useSiteText, type Card, type Section as SectionCopy } from '../i18n/siteText';
 import { Icon, Arrow, type IconName } from './icons';
 import { ChevronField } from './art';
+import { ScaleBox, MatchCard, CandidateCard, PipelineBoard } from './mock';
 
 /**
  * Site chrome and section primitives for nagm.io. Pages compose these with
@@ -88,62 +90,135 @@ export function Logo({ size = 30 }: { size?: number }) {
   );
 }
 
-function Dropdown({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-  }, [open]);
+type MenuKey = 'products' | 'solutions';
+
+const PRODUCT_ICON: Record<string, IconName> = {
+  profile: 'profile', cv: 'cv', match: 'match', interview: 'interview',
+  stages: 'stages', rediscover: 'rediscover', team: 'mention', analytics: 'analytics',
+};
+
+/** One tool in the Products menu: a strong icon, a short name, one line. */
+const MenuItem = ({ to, icon, title, sub, tone }: { to: string; icon: IconName; title: string; sub: string; tone?: 'cyan' }) => (
+  <Link to={to} className={`ns-mitem${tone ? ` ns-mitem--${tone}` : ''}`}>
+    <span className="ns-mitem-icon"><Icon name={icon} size={20} /></span>
+    <span className="ns-mitem-text"><b>{title}</b><span>{sub}</span></span>
+  </Link>
+);
+
+function ProductsPanel() {
+  const t = useSiteText().nav;
+  const group = (g: 'seekers' | 'teams') => t.productItems.filter((p) => p.group === g);
+  const Col = ({ g, title, explore, to, tone }: { g: 'seekers' | 'teams'; title: string; explore: string; to: string; tone?: 'cyan' }) => (
+    <div className="ns-mega-col">
+      <div className="ns-mega-head">
+        <span className={`ns-mega-dot${tone ? ` ns-mega-dot--${tone}` : ''}`} aria-hidden="true" />
+        <h3>{title}</h3>
+        <Link to={to} className="ns-mega-explore">{explore}<Arrow size={14} /></Link>
+      </div>
+      <div className="ns-mega-items">
+        {group(g).map((p) => <MenuItem key={p.key} to={p.to} icon={PRODUCT_ICON[p.key] ?? 'spark'} title={p.title} sub={p.sub} tone={tone} />)}
+      </div>
+    </div>
+  );
   return (
-    <div ref={ref} style={{ position: 'relative' }} onMouseLeave={() => setOpen(false)}>
-      <button type="button" className="ns-nav-link" aria-haspopup="true" aria-expanded={open} onClick={() => setOpen((o) => !o)} onMouseEnter={() => setOpen(true)}>
-        {label}
-        <Icon name="chevronDown" size={14} style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
-      </button>
-      {open && <div className={`ns-menu${wide ? ' ns-menu--wide' : ''}`} role="menu" onClick={() => setOpen(false)}>{children}</div>}
+    <div className="ns-mega-grid">
+      <Col g="seekers" title={t.groupSeekers} explore={t.exploreSeekers} to="/job-seekers" />
+      <Col g="teams" title={t.groupTeams} explore={t.exploreTeams} to="/companies" tone="cyan" />
+      <aside className="ns-mega-feature">
+        <span className="ns-mega-kicker"><Icon name="spark" size={14} />{t.featured.eyebrow}</span>
+        <div className="ns-mega-visual" aria-hidden="true"><ScaleBox width={300} height={146}><MatchCard compact /></ScaleBox></div>
+        <b className="ns-mega-ftitle">{t.featured.title}</b>
+        <p>{t.featured.body}</p>
+        <div className="ns-mega-factions">
+          <Link to={links.register('candidate')} className="ns-btn ns-btn--primary ns-btn--sm">{t.featured.cta}<Arrow size={15} /></Link>
+          <Link to="/pricing" className="ns-mega-explore">{t.menuFooter.pricing}</Link>
+        </div>
+      </aside>
     </div>
   );
 }
 
-const MenuItem = ({ to, icon, title, sub, tone }: { to: string; icon: IconName; title: string; sub: string; tone?: 'cyan' | 'violet' }) => (
-  <Link to={to} className="ns-menu-item" role="menuitem">
-    <span className={`ns-icon-tile${tone ? ` ns-icon-tile--${tone}` : ''}`}><Icon name={icon} size={18} /></span>
-    <span><b>{title}</b><span>{sub}</span></span>
-  </Link>
-);
+function SolutionsPanel() {
+  const t = useSiteText();
+  const n = t.nav;
+  const Card = ({ to, title, body, cta, visual, tone }: { to: string; title: string; body: string; cta: string; visual: ReactNode; tone?: 'cyan' }) => (
+    <Link to={to} className={`ns-scard${tone ? ` ns-scard--${tone}` : ''}`}>
+      <div className="ns-scard-visual" aria-hidden="true">{visual}</div>
+      <div className="ns-scard-copy">
+        <b>{title}</b>
+        <span>{body}</span>
+        <span className="ns-scard-cta">{cta}<Arrow size={14} /></span>
+      </div>
+    </Link>
+  );
+  return (
+    <div className="ns-mega-grid ns-mega-grid--sol">
+      <Card to="/job-seekers" title={n.solutionCards.seekers.title} body={n.solutionCards.seekers.body} cta={n.solutionCards.seekers.cta}
+        visual={<ScaleBox width={330} height={210}><CandidateCard compact /></ScaleBox>} />
+      <Card to="/companies" title={n.solutionCards.teams.title} body={n.solutionCards.teams.body} cta={n.solutionCards.teams.cta} tone="cyan"
+        visual={<ScaleBox width={470} height={210}><PipelineBoard compact /></ScaleBox>} />
+      <aside className="ns-mega-side">
+        <span className="ns-mega-sidehead">{t.nav.pricing}</span>
+        <Link to="/pricing?for=seekers">{t.pricing.audience.seekers}<Arrow size={14} /></Link>
+        <Link to="/pricing?for=recruiters">{t.pricing.audience.recruiters}<Arrow size={14} /></Link>
+        <Link to="/pricing?for=companies">{t.pricing.audience.companies}<Arrow size={14} /></Link>
+        <span className="ns-mega-sidehead" style={{ marginTop: 14 }}>{n.menuFooter.text}</span>
+        <Link to={links.register()}>{n.menuFooter.start}<Arrow size={14} /></Link>
+      </aside>
+    </div>
+  );
+}
 
 export function Nav() {
   const t = useSiteText();
   const lang = useLang();
   const { dark, toggle } = useTheme();
   const [drawer, setDrawer] = useState(false);
-  const { pathname } = useLocation();
-  useEffect(() => setDrawer(false), [pathname]);
+  const [menu, setMenu] = useState<MenuKey | null>(null);
+  const closeTimer = useRef<number | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const { pathname, hash } = useLocation();
+  useEffect(() => { setDrawer(false); setMenu(null); }, [pathname, hash]);
   useHashScroll();
 
-  const productIcon: Record<string, IconName> = { profile: 'profile', cv: 'cv', match: 'match', interview: 'interview', stages: 'stages', rediscover: 'rediscover', team: 'team', analytics: 'analytics' };
+  const cancelClose = () => { if (closeTimer.current) { window.clearTimeout(closeTimer.current); closeTimer.current = null; } };
+  const openMenu = (k: MenuKey) => { cancelClose(); setMenu(k); };
+  const closeSoon = () => { cancelClose(); closeTimer.current = window.setTimeout(() => setMenu(null), 140); };
+
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setMenu(null);
+      headerRef.current?.querySelector<HTMLButtonElement>(`[data-menu="${menu}"]`)?.focus();
+    };
+    const onDoc = (e: MouseEvent) => { if (!headerRef.current?.contains(e.target as Node)) setMenu(null); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDoc);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDoc); };
+  }, [menu]);
+
+  // A render helper, not a component: a component declared here would remount
+  // on every render and drop keyboard focus when the menu opens.
+  const trigger = (k: MenuKey, label: string) => (
+    <button
+      type="button" className="ns-nav-link" data-menu={k}
+      aria-expanded={menu === k} aria-controls={`ns-mega-${k}`}
+      onClick={() => (menu === k ? setMenu(null) : openMenu(k))}
+      onMouseEnter={() => openMenu(k)} onMouseLeave={closeSoon}
+    >
+      {label}
+      <Icon name="chevronDown" size={14} style={{ transform: menu === k ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
+    </button>
+  );
 
   return (
-    <header className="ns-nav">
+    <header className="ns-nav" ref={headerRef}>
       <div className="ns-container ns-nav-inner">
         <Logo />
         <nav className="ns-nav-links" aria-label={lang === 'ar' ? 'الرئيسية' : 'Main'}>
-          <Dropdown label={t.nav.products} wide>
-            <div className="ns-menu-head">{t.nav.productHead}</div>
-            {t.nav.productItems.map((p, i) => (
-              <MenuItem key={p.key} to={p.to} icon={productIcon[p.key] ?? 'spark'} title={p.title} sub={p.sub} tone={i < 4 ? undefined : i < 6 ? 'cyan' : 'violet'} />
-            ))}
-          </Dropdown>
-          <Dropdown label={t.nav.solutions}>
-            <div className="ns-menu-head">{t.nav.solutionsHead}</div>
-            <MenuItem to="/job-seekers" icon="profile" title={t.nav.forSeekers} sub={t.nav.forSeekersSub} />
-            <MenuItem to="/companies" icon="building" title={t.nav.forCompanies} sub={t.nav.forCompaniesSub} tone="cyan" />
-          </Dropdown>
+          {trigger('products', t.nav.products)}
+          {trigger('solutions', t.nav.solutions)}
           <a className="ns-nav-link" href={links.jobs}>{t.nav.jobs}</a>
           <NavLink className={({ isActive }) => `ns-nav-link${isActive ? ' is-active' : ''}`} to="/pricing">{t.nav.pricing}</NavLink>
           <NavLink className={({ isActive }) => `ns-nav-link${isActive ? ' is-active' : ''}`} to="/about">{t.nav.about}</NavLink>
@@ -162,16 +237,38 @@ export function Nav() {
           </button>
         </div>
       </div>
+
+      {menu && (
+        <>
+          {/* The header's backdrop blur would trap a fixed child, so the scrim lives on <body>. */}
+          {createPortal(<div className="ns-mega-scrim" aria-hidden="true" onClick={() => setMenu(null)} />, document.body)}
+          <div
+            id={`ns-mega-${menu}`} className="ns-mega" role="region"
+            aria-label={menu === 'products' ? t.nav.products : t.nav.solutions}
+            onMouseEnter={cancelClose} onMouseLeave={closeSoon}
+          >
+            <div className="ns-container">{menu === 'products' ? <ProductsPanel /> : <SolutionsPanel />}</div>
+          </div>
+        </>
+      )}
+
       {drawer && (
         <div id="ns-drawer" className="ns-drawer">
-          <Link to="/job-seekers">{t.nav.forSeekers}<Arrow size={16} /></Link>
-          <Link to="/companies">{t.nav.forCompanies}<Arrow size={16} /></Link>
+          {(['seekers', 'teams'] as const).map((g) => (
+            <div key={g} className="ns-drawer-group">
+              <Link to={g === 'seekers' ? '/job-seekers' : '/companies'} className="ns-drawer-head">
+                {g === 'seekers' ? t.nav.groupSeekers : t.nav.groupTeams}<Arrow size={16} />
+              </Link>
+              <div className="ns-drawer-sub">
+                {t.nav.productItems.filter((p) => p.group === g).map((p) => (
+                  <Link key={p.key} to={p.to}><Icon name={PRODUCT_ICON[p.key] ?? 'spark'} size={18} />{p.title}</Link>
+                ))}
+              </div>
+            </div>
+          ))}
           <a href={links.jobs}>{t.nav.jobs}<Arrow size={16} /></a>
           <Link to="/pricing">{t.nav.pricing}<Arrow size={16} /></Link>
           <Link to="/about">{t.nav.about}<Arrow size={16} /></Link>
-          <div className="ns-drawer-sub">
-            {t.nav.productItems.map((p) => <Link key={p.key} to={p.to}>{p.title}</Link>)}
-          </div>
           <div className="ns-drawer-ctas">
             <Link to={links.register()} className="ns-btn ns-btn--primary ns-btn--block">{t.nav.start}</Link>
             <Link to={links.login} className="ns-btn ns-btn--secondary ns-btn--block">{t.nav.login}</Link>
@@ -374,7 +471,8 @@ export function Float({ title, body, tags, style, icon = 'profile', tone }: { ti
 export function Hero({ copy, art, floats, primary, secondary }: {
   copy: SectionCopy & { cta1: string; cta2: string };
   art: ReactNode;
-  floats: ReactNode;
+  /** Optional callouts layered over the art (absolute positioned). */
+  floats?: ReactNode;
   primary: { to: string; ext?: boolean };
   secondary: { to: string; ext?: boolean };
 }) {
@@ -394,10 +492,14 @@ export function Hero({ copy, art, floats, primary, secondary }: {
             <Btn to={secondary.to} ext={secondary.ext} cls="ns-btn ns-btn--secondary">{copy.cta2}</Btn>
           </div>
         </div>
-        <div className="ns-hero-art">
-          <div style={{ position: 'absolute', inset: 0 }}>{art}</div>
-          {floats}
-        </div>
+        {floats ? (
+          <div className="ns-hero-art">
+            <div style={{ position: 'absolute', inset: 0 }}>{art}</div>
+            {floats}
+          </div>
+        ) : (
+          <div className="ns-hero-art ns-hero-art--flow">{art}</div>
+        )}
       </div>
     </section>
   );
