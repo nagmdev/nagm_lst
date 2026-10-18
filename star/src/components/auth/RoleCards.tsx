@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Briefcase, Building2 } from 'lucide-react';
+import { User, Briefcase, Building2 } from '../../design/glyphs';
 import type { AccountRole } from '../../auth';
 import { useAuthText } from '../../i18n/authText';
 
