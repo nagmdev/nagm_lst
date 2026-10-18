@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, Globe, Search } from 'lucide-react';
+import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, Globe, Search, User } from '../design/glyphs';
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
@@ -126,7 +126,11 @@ const AuthPage: React.FC = () => {
   const [animatingErrors, setAnimatingErrors] = useState(false);
   const flashErrors = () => { setAnimatingErrors(true); setTimeout(() => setAnimatingErrors(false), 550); };
   const [remember, setRemember] = useState(true);
-  // A recruiter picks the existing company they are asking to join.
+  // A recruiter joins an existing company (its admin approves them) or works
+  // independently: a one-person personal workspace on a recruiter plan, whose
+  // jobs Nagm reviews and which never carries the Verified badge (owner
+  // decision 2026-10-18, reversing 2026-10-15).
+  const [companyMode, setCompanyMode] = useState<'join' | 'independent'>('join');
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState<CompanyOption[]>([]);
   const [pickedCompany, setPickedCompany] = useState<CompanyOption | null>(null);
@@ -191,7 +195,7 @@ const AuthPage: React.FC = () => {
   // Debounced company lookup. The work email is sent too so a matching domain
   // surfaces the right company first ("sara@microsoft.com" -> Microsoft).
   useEffect(() => {
-    if (role !== 'recruiter' || pickedCompany) { setCompanyResults([]); return; }
+    if (role !== 'recruiter' || companyMode !== 'join' || pickedCompany) { setCompanyResults([]); return; }
     const q = companyQuery.trim();
     const email = values.companyEmail.trim();
     if (q.length < 2 && !email.includes('@')) { setCompanyResults([]); return; }
@@ -201,7 +205,7 @@ const AuthPage: React.FC = () => {
       if (alive) setCompanyResults(r.companies);
     }, 280);
     return () => { alive = false; clearTimeout(t); };
-  }, [companyQuery, values.companyEmail, role, pickedCompany]);
+  }, [companyQuery, values.companyEmail, role, companyMode, pickedCompany]);
 
   const switchMode = useCallback((mode: AuthMode) => {
     if (mode === authMode || transitioning) return;
@@ -238,7 +242,7 @@ const AuthPage: React.FC = () => {
       case 'jobTitle': err = v ? '' : t.jobTitleRequired; break;
       case 'jobTitleOther': err = values.jobTitle === 'Other' && !v ? t.jobTitleOtherRequired : tooLong(t.jobTitle); break;
       // The join picker isn't a text field — validate the selection itself.
-      case 'company': err = !pickedCompany ? t.chooseCompany : ''; break;
+      case 'company': err = companyMode === 'join' && !pickedCompany ? t.chooseCompany : ''; break;
       case 'email': err = emailError(v, true, t.lang); break;
       // A recruiter's email may be a company address OR a personal one — a new
       // company often has no domain email yet, and freelance recruiters use a
@@ -297,8 +301,8 @@ const AuthPage: React.FC = () => {
       case 'candidate': return ['firstName', 'lastName', 'email', 'phone', 'password', 'confirmPassword'];
       case 'recruiter': return [
         'firstName', 'lastName', 'companyEmail',
-        // A recruiter always names the company they are joining.
-        'company',
+        // Joining names a company; an independent recruiter has none to check.
+        ...(companyMode === 'join' ? ['company'] : []),
         'phone', 'jobTitle',
         ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []),
         'linkedInProfile', 'password', 'confirmPassword',
@@ -368,13 +372,15 @@ const AuthPage: React.FC = () => {
         if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
         payload.jobTitle = (values.jobTitle === 'Other' ? values.jobTitleOther : values.jobTitle).trim();
         payload.linkedInProfile = values.linkedInProfile.trim();
-        // A recruiter joins an existing company: the chosen company's id is a
-        // request its admin approves, and that approval is what gives them
-        // recruiter access. A NEW company registers through company sign-up,
-        // which Nagm verifies (KYB) first.
-        if (pickedCompany) {
+        // Joining sends the chosen company's id — a request its admin
+        // approves. Independent sends `independent: true` and gets a personal
+        // workspace. A NEW company registers through company sign-up, which
+        // Nagm verifies (KYB) first.
+        if (companyMode === 'join' && pickedCompany) {
           payload.joinCompanyId = pickedCompany.id;
           payload.companyName = pickedCompany.name;
+        } else if (companyMode === 'independent') {
+          payload.independent = true;
         }
       } else {
         payload.companyName = values.companyName.trim();
@@ -650,6 +656,11 @@ const AuthPage: React.FC = () => {
     </>
   );
 
+  const companyModes = [
+    ['join', t.joinExisting, Building2],
+    ['independent', t.independent, User],
+  ] as const;
+
   const recruiterForm = () => (
     <>
       {approvalNote()}
@@ -659,12 +670,40 @@ const AuthPage: React.FC = () => {
       </div>
       {field('companyEmail', t.email, { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
 
-      {/* A recruiter joins an existing company; its admin approves them. A new
-          company registers as a company and is verified first. */}
+      {/* A recruiter joins an existing company (its admin approves them) or
+          works independently in a personal workspace. A new company registers
+          as a company and is verified first. */}
       <div style={{ marginBottom: 16 }}>
         <div id="company-mode-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
           {t.yourCompany}
         </div>
+        <div role="radiogroup" aria-labelledby="company-mode-label" className="ng-company-modes" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+          {companyModes.map(([val, label, Icon]) => {
+            const active = companyMode === val;
+            return (
+              <button
+                key={val}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => { setCompanyMode(val); setErrors((p) => ({ ...p, company: '' })); }}
+                className="ng-role-tab"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderRadius: 12,
+                  border: `1.5px solid ${active ? 'var(--brand)' : 'var(--line)'}`,
+                  background: active ? 'var(--brandSoft)' : 'var(--panel)',
+                  color: active ? 'var(--brandInk)' : 'var(--ink2)',
+                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', minWidth: 0,
+                  transition: 'border-color .15s, background .15s, color .15s',
+                }}
+              >
+                <Icon size={15} aria-hidden="true" style={{ flexShrink: 0 }} /> <span style={{ minWidth: 0 }}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {companyMode === 'join' ? (
         <>
             <div style={{ position: 'relative' }}>
               <Search size={15} aria-hidden="true" style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
@@ -712,6 +751,9 @@ const AuthPage: React.FC = () => {
             )}
             {errorText('company')}
         </>
+        ) : (
+          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0, lineHeight: 1.6 }}>{t.independentNote}</p>
+        )}
         <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '10px 0 0', lineHeight: 1.5 }}>
           {t.newCompanyPrompt}{' '}
           <button type="button" onClick={() => switchRole('company')} style={linkButton}>{t.registerCompanyLink}</button>

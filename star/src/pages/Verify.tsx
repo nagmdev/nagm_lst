@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from '../design/glyphs';
 import AuthShell from './AuthShell';
 import { authApi, handoffToApp, apiError, pendingSignInFor, forgetPendingSignIn } from '../auth';
 import { useAuthText, localizeServerMessage } from '../i18n/authText';

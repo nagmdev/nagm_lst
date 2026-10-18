@@ -2,13 +2,14 @@ import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Landing from './Landing';
 import { APP_ORIGIN } from './auth';
+import { LegacyRedirect, FEATURE_REDIRECTS, SOLUTION_REDIRECTS } from './legacyRoutes';
 
 const AuthPage = lazy(() => import('./pages/AuthPage'));
 const Verify = lazy(() => import('./pages/Verify'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
-const FeatureDetail = lazy(() => import('./pages/FeatureDetail'));
-const SolutionsPage = lazy(() => import('./pages/SolutionsPage'));
-const WhyNagmPage = lazy(() => import('./pages/WhyNagmPage'));
+const JobSeekersPage = lazy(() => import('./pages/JobSeekersPage'));
+const CompaniesPage = lazy(() => import('./pages/CompaniesPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
 
 const PageFallback = () => (
   <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--ink2)' }}>
@@ -24,7 +25,7 @@ function RedirectToApp() {
   return null;
 }
 
-// nagm.io: marketing landing + the pre-auth flow (login / register / verify).
+// nagm.io: marketing site + the pre-auth flow (login / register / verify).
 // After a successful sign-in these hand the session off to app.nagm.io.
 export default function Root() {
   return (
@@ -33,14 +34,18 @@ export default function Root() {
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
-          
-          {/* Real Dedicated Product Ecosystem Routes */}
-          <Route path="/features/:slug" element={<FeatureDetail />} />
-          <Route path="/features" element={<FeatureDetail />} />
-          <Route path="/solutions/:slug" element={<SolutionsPage />} />
-          <Route path="/solutions" element={<SolutionsPage />} />
-          <Route path="/why-nagm" element={<WhyNagmPage />} />
+          <Route path="/job-seekers" element={<JobSeekersPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/about" element={<AboutPage />} />
+
+          {/* Retired pages */}
+          <Route path="/features/:slug" element={<LegacyRedirect table={FEATURE_REDIRECTS} fallback="/" />} />
+          <Route path="/features" element={<Navigate to="/" replace />} />
+          <Route path="/solutions/:slug" element={<LegacyRedirect table={SOLUTION_REDIRECTS} fallback="/companies" />} />
+          <Route path="/solutions" element={<Navigate to="/companies" replace />} />
+          <Route path="/why-nagm" element={<Navigate to="/#why" replace />} />
+          <Route path="/plans" element={<Navigate to="/pricing" replace />} />
 
           {/* Redirect all job, recruiter, and shared application links directly to app.nagm.io */}
           <Route path="/jobs" element={<RedirectToApp />} />

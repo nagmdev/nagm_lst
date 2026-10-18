@@ -125,6 +125,8 @@ export interface CompanyOption {
 export interface RegisterPayload {
   /** Set when the recruiter asked to join an existing company (id) at sign-up. */
   joinCompanyId?: number;
+  /** A recruiter with no company: the API gives them a personal workspace. */
+  independent?: boolean;
   email: string;
   password: string;
   role?: AccountRole;

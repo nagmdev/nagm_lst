@@ -3,7 +3,7 @@
  * are mocked, so nothing leaves the test.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import AuthPage from './AuthPage';
@@ -218,16 +218,33 @@ describe('recruiter joining an existing company', () => {
     expect(api.register).toHaveBeenCalledWith(expect.objectContaining({ role: 'recruiter', joinCompanyId: 12, companyName: 'Acme', jobTitle: 'Recruiter' }));
   });
 
-  it('only lets a recruiter join an existing company; a new company goes through company sign-up and KYB (SEC-04)', async () => {
+  it('offers join or independent, never "create"; a new company goes through company sign-up and KYB (SEC-04)', async () => {
     renderSignup('/register?role=recruiter');
-    // Joining an existing company is the only recruiter path: no "create" and
-    // no "independent" option (owner decision 2026-10-15).
-    expect(screen.queryByRole('radiogroup', { name: 'Your company' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Independent')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Search companies')).toBeInTheDocument();
+    const modes = within(screen.getByRole('radiogroup', { name: 'Your company' })).getAllByRole('radio').map((r) => r.textContent?.trim());
+    expect(modes).toEqual(['Join a company', 'Independent recruiter']);
     fireEvent.click(screen.getByRole('button', { name: 'Register your company' }));
     expect(await screen.findByLabelText(/^Company Name/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Business Email/)).toBeInTheDocument();
+  });
+
+  it('an independent recruiter sends independent: true and no company (owner decision 2026-10-18)', async () => {
+    renderSignup('/register?role=recruiter');
+    type(/^First Name/, 'Mona');
+    type(/^Last Name/, 'Saleh');
+    type(/^Email/, 'mona@gmail.com');
+    fireEvent.click(screen.getByRole('radio', { name: 'Independent recruiter' }));
+    expect(screen.queryByLabelText('Search companies')).not.toBeInTheDocument();
+    expect(screen.getByText(/personal workspace/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Job Title/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'Recruiter' }));
+    type(/^Password/, 'Str0ngPass!');
+    type(/^Confirm Password/, 'Str0ngPass!');
+    acceptTerms();
+    submit();
+    await screen.findByText('verify page');
+    const sent = api.register.mock.calls[0][0];
+    expect(sent).toEqual(expect.objectContaining({ role: 'recruiter', independent: true }));
+    expect(sent.joinCompanyId).toBeUndefined();
   });
 
   it('refuses a javascript: LinkedIn link', async () => {
@@ -306,7 +323,8 @@ describe('Arabic / RTL', () => {
     await user.keyboard('{ArrowLeft}'); // in RTL the next card is to the LEFT
     // The switch runs after a 150ms cross-fade (timer-driven, so give it room
     // when the test files run in parallel on a busy machine).
-    const recruiter = () => screen.getByRole('radio', { name: /مسؤول توظيف/ });
+    // The account-type card, not the recruiter form's "independent recruiter" choice.
+    const recruiter = () => screen.getAllByRole('radio', { name: /مسؤول توظيف/ })[0];
     await waitFor(() => expect(recruiter()).toHaveAttribute('aria-checked', 'true'), { timeout: 3000 });
     await waitFor(() => expect(recruiter()).toHaveFocus(), { timeout: 3000 });
   });
