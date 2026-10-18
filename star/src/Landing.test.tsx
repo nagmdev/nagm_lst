@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Landing from './Landing';
@@ -94,5 +94,24 @@ describe('retired pages', () => {
   ])('%s lands on %s', (from, to) => {
     visit(from);
     expect(screen.getByTestId('at')).toHaveTextContent(to);
+  });
+});
+
+describe('live catalog', () => {
+  it('reads the API price shape ({ MONTH, YEAR }) and prefers it over the list prices', async () => {
+    const { api } = await import('./auth');
+    const { fetchCatalog, priceOf } = await import('./data/pricing');
+    const spy = vi.spyOn(api, 'get').mockResolvedValue({
+      data: {
+        market: 'SA', currency: 'SAR', vatBps: 1500, tamaraAvailable: true, providers: ['paymob', 'tamara'],
+        plans: [{ id: 'COMPANY_GROWTH', audience: 'COMPANY', prices: { MONTH: { interval: 'MONTH', currency: 'SAR', amountMinor: 46900 }, YEAR: null } }],
+      },
+    } as never);
+    const cat = await fetchCatalog('SA');
+    expect(cat.live).toBe(true);
+    expect(priceOf(cat, 'COMPANY_GROWTH', 'MONTH')).toBe(46900);
+    // No live yearly price: falls back to the approved list (449 × 12 × 0.8).
+    expect(priceOf(cat, 'COMPANY_GROWTH', 'YEAR')).toBe(431000);
+    spy.mockRestore();
   });
 });

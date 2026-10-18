@@ -219,9 +219,22 @@ export async function fetchCatalog(market: Market, signal?: AbortSignal): Promis
   const { data } = await api.get('/billing/catalog', { params: { market }, signal, timeout: 6000 });
   const m: Market = MARKETS.includes(data?.market) ? data.market : market;
   const meta = MARKET_META[m];
-  const plans: LivePlan[] = Array.isArray(data?.plans) ? data.plans.map((p: LivePlan) => ({
+  // The API sends prices as { MONTH: Price | null, YEAR: Price | null }; an
+  // array of prices is accepted too.
+  type ApiPrice = { interval?: Interval; amountMinor: number | string; currency: string };
+  const pricesOf = (raw: unknown): LivePrice[] => {
+    const list: [Interval | undefined, ApiPrice | null | undefined][] = Array.isArray(raw)
+      ? (raw as ApiPrice[]).map((x) => [x?.interval, x])
+      : raw && typeof raw === 'object'
+        ? (Object.entries(raw as Record<string, ApiPrice | null>) as [Interval, ApiPrice | null][])
+        : [];
+    return list
+      .filter(([interval, x]) => (interval === 'MONTH' || interval === 'YEAR') && x && Number.isFinite(Number(x.amountMinor)))
+      .map(([interval, x]) => ({ interval: interval as Interval, amountMinor: Number(x!.amountMinor), currency: x!.currency }));
+  };
+  const plans: LivePlan[] = Array.isArray(data?.plans) ? data.plans.map((p: LivePlan & { prices?: unknown }) => ({
     id: p.id, audience: p.audience, active: p.active, features: p.features,
-    prices: Array.isArray(p.prices) ? p.prices.map((x) => ({ interval: x.interval, amountMinor: Number(x.amountMinor), currency: x.currency })) : [],
+    prices: pricesOf(p.prices),
   })) : [];
   return {
     market: m,
