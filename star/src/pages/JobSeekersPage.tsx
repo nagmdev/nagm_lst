@@ -1,7 +1,7 @@
 import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
-import { Shell, Hero, Float, Section, SectionHead, Strip, FeatureCard, Steps, Bullets, Note, CtaBand, usePageMeta, links } from '../design/ui';
-import { ProfileScene, MatchScene, InterviewScene, HeroScene } from '../design/art';
+import { Shell, Hero, Section, SectionHead, Strip, FeatureCard, Steps, Bullets, Note, CtaBand, usePageMeta, links } from '../design/ui';
+import { SeekerStage, AutofillCard, CandidateCard, MatchCard, AnswerCard, ScaleBox } from '../design/mock';
 import { Icon, Arrow, type IconName } from '../design/icons';
 
 /** Solutions → by user → job seekers. */
@@ -17,15 +17,9 @@ export default function JobSeekersPage() {
     <Shell>
       <Hero
         copy={s.hero}
-        art={<HeroScene />}
+        art={<SeekerStage back="autofill" card1={s.hero.card1.title} card1Tags={s.hero.card1.body.split(' · ')} card2={s.hero.card2.title} card2Body={s.hero.card2.body} />}
         primary={{ to: links.register('candidate') }}
         secondary={{ to: links.jobs, ext: true }}
-        floats={
-          <>
-            <Float title={s.hero.card1.title} body={s.hero.card1.body} icon="profile" style={{ left: '10%', top: '24%', width: 290, animation: 'ngFloat 7s ease-in-out infinite' }} />
-            <Float title={s.hero.card2.title} body={s.hero.card2.body} icon="match" tone="cyan" style={{ right: 0, top: '55%', width: 250, animation: 'ngFloat2 8s ease-in-out infinite' }} />
-          </>
-        }
       />
 
       <Section tight tone="band">
@@ -42,7 +36,10 @@ export default function JobSeekersPage() {
               {s.profile.cards.map((c, i) => <FeatureCard key={c.title} card={c} icon={i === 0 ? 'cv' : 'spark'} tone={i === 0 ? undefined : 'violet'} lift={false} />)}
             </div>
           </div>
-          <div><ProfileScene /></div>
+          <div style={{ display: 'grid', gap: 16 }}>
+            <ScaleBox width={460} height={290}><AutofillCard /></ScaleBox>
+            <div style={{ maxWidth: 380, marginInlineStart: 'auto' }}><ScaleBox width={380} height={250}><CandidateCard /></ScaleBox></div>
+          </div>
         </div>
       </Section>
 
@@ -67,7 +64,7 @@ export default function JobSeekersPage() {
             <Steps steps={s.match.steps} stack />
             <div style={{ marginTop: 20 }}><Note>{s.match.note}</Note></div>
           </div>
-          <div><MatchScene /></div>
+          <div><ScaleBox width={470} height={330}><MatchCard /></ScaleBox></div>
         </div>
       </Section>
 
@@ -105,7 +102,7 @@ export default function JobSeekersPage() {
               {s.interview.cards.map((c, i) => <FeatureCard key={c.title} card={c} icon={(['interview', 'cv', 'refresh'] as IconName[])[i]} tone={(['violet', undefined, 'cyan'] as const)[i]} lift={false} />)}
             </div>
           </div>
-          <div><InterviewScene /></div>
+          <div><ScaleBox width={470} height={300}><AnswerCard /></ScaleBox></div>
         </div>
       </Section>
 

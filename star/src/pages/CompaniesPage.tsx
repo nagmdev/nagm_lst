@@ -1,7 +1,7 @@
 import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
-import { Shell, Hero, Float, Section, SectionHead, Strip, FeatureCard, Steps, Note, CtaBand, usePageMeta, links } from '../design/ui';
-import { PipelineScene, BaseScene, TeamScene, AnalyticsScene, CompanyScene } from '../design/art';
+import { Shell, Hero, Section, SectionHead, Strip, FeatureCard, Steps, Note, CtaBand, usePageMeta, links } from '../design/ui';
+import { TeamStage, PipelineBoard, ApplicantsTable, TeamThread, FunnelPanel, CompanyHeader, ScaleBox } from '../design/mock';
 import { Icon, type IconName } from '../design/icons';
 
 /** Solutions → by user → companies and recruiters. */
@@ -17,15 +17,9 @@ export default function CompaniesPage() {
     <Shell>
       <Hero
         copy={c.hero}
-        art={<PipelineScene />}
+        art={<TeamStage card1={c.hero.card1.title} card2={c.hero.card2.title} />}
         primary={{ to: links.register('company') }}
         secondary={{ to: links.register('recruiter') }}
-        floats={
-          <>
-            <Float title={c.hero.card1.title} body={c.hero.card1.body} icon="profile" style={{ left: 0, top: '2%', width: 270, animation: 'ngFloat 7s ease-in-out infinite' }} />
-            <Float title={c.hero.card2.title} body={c.hero.card2.body} icon="calendar" tone="cyan" style={{ right: 0, bottom: '4%', width: 250, animation: 'ngFloat2 8s ease-in-out infinite' }} />
-          </>
-        }
       />
 
       <Section tight tone="band">
@@ -57,7 +51,7 @@ export default function CompaniesPage() {
             <SectionHead copy={c.stages} />
             <Steps steps={c.stages.steps} stack />
           </div>
-          <div><PipelineScene /></div>
+          <div className="ns-sticky-visual"><ScaleBox width={680} height={330}><PipelineBoard /></ScaleBox></div>
         </div>
       </Section>
 
@@ -78,7 +72,7 @@ export default function CompaniesPage() {
               ))}
             </div>
           </div>
-          <div><TeamScene /></div>
+          <div><ScaleBox width={460} height={330}><TeamThread /></ScaleBox></div>
         </div>
       </Section>
 
@@ -91,7 +85,7 @@ export default function CompaniesPage() {
               {c.base.cards.map((x, i) => <FeatureCard key={x.title} card={x} icon={i === 0 ? 'applicants' : 'search'} tone={i === 0 ? undefined : 'cyan'} lift={false} />)}
             </div>
           </div>
-          <div><BaseScene /></div>
+          <div><ScaleBox width={470} height={400}><ApplicantsTable rows={6} /></ScaleBox></div>
         </div>
       </Section>
 
@@ -118,7 +112,7 @@ export default function CompaniesPage() {
               {c.presence.cards.map((x, i) => <FeatureCard key={x.title} card={x} icon={(['building', 'star', 'verified'] as IconName[])[i]} tone={([undefined, 'violet', 'cyan'] as const)[i]} lift={false} />)}
             </div>
           </div>
-          <div><CompanyScene /></div>
+          <div><ScaleBox width={420} height={300}><CompanyHeader /></ScaleBox></div>
         </div>
       </Section>
 
@@ -131,7 +125,7 @@ export default function CompaniesPage() {
               {c.analytics.cards.map((x, i) => <FeatureCard key={x.title} card={x} icon={i === 0 ? 'funnel' : 'sheet'} tone={i === 0 ? undefined : 'cyan'} lift={false} />)}
             </div>
           </div>
-          <div><AnalyticsScene /></div>
+          <div><ScaleBox width={470} height={290}><FunnelPanel /></ScaleBox></div>
         </div>
       </Section>
 

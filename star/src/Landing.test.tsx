@@ -63,8 +63,14 @@ describe('home page', () => {
 
   it('opens the Products menu with links to page sections', () => {
     renderHome();
-    fireEvent.click(screen.getByRole('button', { name: 'Products' }));
-    expect(screen.getByRole('menuitem', { name: /ATS check and match analysis/ })).toHaveAttribute('href', '/job-seekers#match');
+    const trigger = screen.getByRole('button', { name: 'Products' });
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const panel = screen.getByRole('region', { name: 'Products' });
+    expect(within(panel).getByRole('link', { name: /ATS check/ })).toHaveAttribute('href', '/job-seekers#match');
+    expect(within(panel).getByRole('link', { name: /Team collaboration/ })).toHaveAttribute('href', '/companies#team');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: 'Products' })).not.toBeInTheDocument();
   });
 });
 
