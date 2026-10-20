@@ -7,7 +7,7 @@ import { BillingScene, ChevronField } from '../design/art';
 import { Icon, Arrow, type IconName } from '../design/icons';
 import { PlanCard } from '../design/plans';
 import {
-  PLANS, FEATURES, MARKETS, MARKET_META, staticCatalog, fetchCatalog, guessMarket, rememberMarket, vatLabel,
+  PLANS, FEATURES, MARKETS, MARKET_META, staticCatalog, fetchCatalog, guessMarket, rememberMarket, vatLabel, bestSavingsPercent, seatsOf,
   type Market, type Audience, type Interval, type Catalog,
 } from '../data/pricing';
 
@@ -54,6 +54,9 @@ export default function PricingPage() {
   const quoted = plans.filter((x) => x.monthly === undefined);
   const features = useMemo(() => FEATURES.filter((f) => f.audience === (audience === 'CANDIDATE' ? 'CANDIDATE' : 'COMPANY')), [audience]);
   const tamara = cat.tamaraAvailable && interval === 'YEAR';
+  // "Save up to N%" from the real prices of the plans on this tab; no tag when nothing is saved.
+  const bestSaving = bestSavingsPercent(cat, priced.map((x) => x.id));
+  const companySeats = PLANS.filter((x) => x.audience === 'COMPANY' && x.monthly).map((x) => seatsOf(cat, x)).filter((n): n is number => typeof n === 'number' && n > 1);
 
   const audLabel: Record<Audience, string> = { CANDIDATE: p.audience.seekers, RECRUITER: p.audience.recruiters, COMPANY: p.audience.companies };
   const audIcon: Record<Audience, IconName> = { CANDIDATE: 'profile', RECRUITER: 'jobs', COMPANY: 'building' };
@@ -86,7 +89,7 @@ export default function PricingPage() {
             </div>
             <div className="ns-seg" role="group" aria-label={lang === 'ar' ? 'فترة الاشتراك' : 'Billing interval'}>
               <button type="button" aria-pressed={interval === 'MONTH'} onClick={() => setInterval('MONTH')}>{p.interval.month}</button>
-              <button type="button" aria-pressed={interval === 'YEAR'} onClick={() => setInterval('YEAR')}>{p.interval.year}<span className="ns-tag ns-tag--ok">{p.interval.save}</span></button>
+              <button type="button" aria-pressed={interval === 'YEAR'} onClick={() => setInterval('YEAR')}>{p.interval.year}{bestSaving > 0 && <span className="ns-tag ns-tag--ok" data-testid="save-up-to">{p.interval.saveUpTo(bestSaving)}</span>}</button>
             </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -104,6 +107,37 @@ export default function PricingPage() {
         </div>
       </Section>
 
+      {/* recruiter or company: the difference is users */}
+      {audience !== 'CANDIDATE' && (
+        <Section tight>
+          <div style={{ display: 'grid', gap: 14 }} data-testid="recruiter-or-company">
+            <div>
+              <h2 className="ns-h3" style={{ fontSize: 22, marginBottom: 4 }}>{p.who.title}</h2>
+              <p className="ns-body" style={{ fontSize: 14 }}>{p.who.body}</p>
+            </div>
+            <div className="ns-who">
+              {(['RECRUITER', 'COMPANY'] as Audience[]).map((a) => {
+                const w = a === 'RECRUITER' ? p.who.recruiter : p.who.company;
+                const users = a === 'RECRUITER' ? p.who.recruiter.users : p.who.company.users(Math.min(...companySeats), Math.max(...companySeats));
+                return (
+                  <div key={a} className="ns-card ns-who-card" data-active={audience === a ? 'true' : undefined}>
+                    <div className="ns-who-head">
+                      <span className={`ns-icon-tile${a === 'COMPANY' ? ' ns-icon-tile--cyan' : ''}`}><Icon name={a === 'RECRUITER' ? 'user' : 'team'} /></span>
+                      <b>{w.title}</b>
+                      <span className={`ns-tag${a === 'COMPANY' ? ' ns-tag--brand' : ''}`}>{w.tag}</span>
+                    </div>
+                    <div className="ns-who-users">{users}</div>
+                    <ul className="ns-list">{w.points.map((x) => <li key={x} style={{ fontSize: 14 }}><Icon name="check" size={15} weight={2.2} />{x}</li>)}</ul>
+                    {audience !== a && <button type="button" className="ns-btn ns-btn--secondary ns-btn--sm" onClick={() => setAudience(a)}>{w.see}<Arrow size={15} /></button>}
+                  </div>
+                );
+              })}
+            </div>
+            <Note icon="shield">{p.who.note}</Note>
+          </div>
+        </Section>
+      )}
+
       {/* cards */}
       <Section tight>
         <div className={`ns-pricing-grid${priced.length > 3 ? ' ns-pricing-grid--4' : ''}`}>
@@ -112,7 +146,6 @@ export default function PricingPage() {
         {quoted.map((plan) => (
           <div key={plan.id} style={{ marginTop: 18 }}><PlanCard plan={plan} cat={cat} interval={interval} wide /></div>
         ))}
-        {audience === 'RECRUITER' && <div style={{ marginTop: 18 }}><Note icon="shield">{p.recruiterNote}</Note></div>}
         {tamara && (
           <div className="ns-card ns-card--accent" style={{ marginTop: 22, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="ns-icon-tile ns-icon-tile--grad ns-icon-tile--lg" style={{ ['--icAccent' as string]: 'rgba(255,255,255,.75)' }}><Icon name="instalments" size={26} /></span>

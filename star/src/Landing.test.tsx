@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, act, within } from '@testing-library/react';
+import { render, screen, fireEvent, act, within, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Landing from './Landing';
 import { APP_ORIGIN } from './auth';
@@ -116,8 +116,77 @@ describe('live catalog', () => {
     const cat = await fetchCatalog('SA');
     expect(cat.live).toBe(true);
     expect(priceOf(cat, 'COMPANY_GROWTH', 'MONTH')).toBe(46900);
-    // No live yearly price: falls back to the approved list (449 × 12 × 0.8).
-    expect(priceOf(cat, 'COMPANY_GROWTH', 'YEAR')).toBe(431000);
+    // No live yearly price: not sold yearly. Never a yearly price computed from
+    // the OLD list monthly next to a new live monthly price.
+    expect(priceOf(cat, 'COMPANY_GROWTH', 'YEAR')).toBeUndefined();
     spy.mockRestore();
+  });
+
+  it('savings come from the two real prices, and vanish when yearly is not cheaper', async () => {
+    const { yearlySavings, deriveYearlyMinor, savingsOf, staticCatalog } = await import('./data/pricing');
+    expect(yearlySavings(5000, 65000)).toBeNull(); // monthly 50, stale yearly 650
+    expect(yearlySavings(5000, 60000)).toBeNull();
+    expect(yearlySavings(5000, 50000)).toEqual({ percent: 17, amountMinor: 10000, monthsFree: 2 });
+    expect(yearlySavings(24900, 239000)).toEqual({ percent: 20, amountMinor: 59800, monthsFree: null });
+    expect(deriveYearlyMinor(5000, 1667)).toBe(50000);
+    expect(deriveYearlyMinor(24900)).toBe(239000);
+    expect(savingsOf(staticCatalog('EG'), 'CANDIDATE_PRO')?.percent).toBe(20);
+  });
+});
+
+describe('pricing page', () => {
+  const liveCatalog = (over: Record<string, unknown> = {}) => ({
+    market: 'EG', currency: 'EGP', vatBps: 1400, tamaraAvailable: false, providers: ['paymob'],
+    plans: [
+      { id: 'COMPANY_STARTER', audience: 'COMPANY', entitlements: { seats: 2 }, prices: { MONTH: { currency: 'EGP', amountMinor: 245000 }, YEAR: { currency: 'EGP', amountMinor: 2352000 } }, promotions: [] },
+      { id: 'COMPANY_GROWTH', audience: 'COMPANY', entitlements: { seats: 5 }, prices: { MONTH: { currency: 'EGP', amountMinor: 5000 }, YEAR: { currency: 'EGP', amountMinor: 65000 } },
+        promotions: [{ id: 'p1', kind: 'PERCENT', value: 50, label: null, labelAr: null, intervals: ['MONTH'], endsAt: null, maxRedemptions: 50, remaining: 38, prices: { MONTH: { listMinor: 5000, totalMinor: 2500, discountMinor: 2500 } } }] },
+      { id: 'COMPANY_BUSINESS', audience: 'COMPANY', entitlements: { seats: 15 }, prices: { MONTH: { currency: 'EGP', amountMinor: 1490000 }, YEAR: { currency: 'EGP', amountMinor: 14900000 } }, promotions: [] },
+      { id: 'RECRUITER_PRO', audience: 'RECRUITER', entitlements: { seats: 1 }, prices: { MONTH: { currency: 'EGP', amountMinor: 145000 }, YEAR: { currency: 'EGP', amountMinor: 1392000 } }, promotions: [] },
+    ],
+    ...over,
+  });
+
+  const renderPricing = async (path: string, data = liveCatalog()) => {
+    const { api } = await import('./auth');
+    const spy = vi.spyOn(api, 'get').mockResolvedValue({ data } as never);
+    const { default: PricingPage } = await import('./pages/PricingPage');
+    render(<MemoryRouter initialEntries={[path]}><PricingPage /></MemoryRouter>);
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    return spy;
+  };
+
+  it('company cards lead with users, show the live promotion, and the comparison starts with Users', async () => {
+    localStorage.setItem('nagm_lang', 'en');
+    await renderPricing('/pricing?for=companies&market=EG');
+    fireEvent.click(screen.getByRole('button', { name: 'Monthly' }));
+    const growth = await screen.findByRole('article', { name: 'Growth' });
+    expect(within(growth).getByTestId('plan-users')).toHaveTextContent(/5 users.*hiring team/);
+    await waitFor(() => expect(within(growth).getByTestId('plan-promo')).toHaveTextContent('50% off'));
+    expect(within(growth).getByTestId('plan-was')).toHaveTextContent(/EGP 50/);
+    expect(within(growth).getByTestId('plan-price')).toHaveTextContent(/25/);
+    expect(within(growth).getByTestId('plan-left')).toHaveTextContent('38 of 50 left');
+    expect(within(screen.getByRole('article', { name: 'Starter' })).queryByTestId('plan-promo')).not.toBeInTheDocument();
+    const firstRow = screen.getAllByRole('row')[1];
+    expect(firstRow).toHaveTextContent(/^Users \(seats\)/);
+    expect(screen.getByTestId('recruiter-or-company')).toHaveTextContent(/companies cannot subscribe to them/);
+  });
+
+  it('yearly: a saving only where the real yearly price is cheaper; "save up to" is the best real one', async () => {
+    localStorage.setItem('nagm_lang', 'en');
+    await renderPricing('/pricing?for=companies&market=EG');
+    await waitFor(() => expect(screen.getByTestId('save-up-to')).toHaveTextContent('Save up to 20%'));
+    // Yearly is the default tab.
+    const starter = await screen.findByRole('article', { name: 'Starter' });
+    expect(within(starter).getByTestId('plan-saving')).toHaveTextContent(/Save 20%/);
+    await waitFor(() => expect(within(screen.getByRole('article', { name: 'Growth' })).queryByTestId('plan-saving')).not.toBeInTheDocument());
+    expect(within(screen.getByRole('article', { name: 'Business' })).getByTestId('plan-saving')).toHaveTextContent(/2 months free/);
+  });
+
+  it('a recruiter card says 1 user — for an independent recruiter', async () => {
+    localStorage.setItem('nagm_lang', 'en');
+    await renderPricing('/pricing?for=recruiters&market=EG');
+    const pro = await screen.findByRole('article', { name: 'Pro' });
+    expect(within(pro).getByTestId('plan-users')).toHaveTextContent(/1 user.*independent recruiter/);
   });
 });
