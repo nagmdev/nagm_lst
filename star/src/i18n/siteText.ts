@@ -74,7 +74,15 @@ export interface SiteText {
   pricing: {
     hero: Section;
     audience: { seekers: string; recruiters: string; companies: string };
-    interval: { month: string; year: string; save: string };
+    interval: { month: string; year: string; saveUpTo: (pct: number) => string };
+    save: { pct: (pct: number) => string; monthsFree: (n: number) => string; youSave: (amount: string) => string; perMonthExact: (amount: string) => string };
+    seats: { one: string; oneSub: string; many: (n: number) => string; teamSub: string; ownerOnly: string; unlimited: string };
+    promo: {
+      percent: (v: number) => string; amount: (a: string) => string; freeDays: (n: number) => string;
+      left: (n: number, max: number) => string; until: (date: string) => string;
+      firstMonth: (a: string) => string; firstYear: (a: string) => string; trialThen: (n: number, a: string) => string; startTrial: string;
+    };
+    who: { title: string; body: string; recruiter: { title: string; tag: string; users: string; points: string[]; see: string }; company: { title: string; tag: string; users: (min: number, max: number) => string; points: string[]; see: string }; note: string };
     market: { label: string; EG: string; SA: string; AE: string; INTL: string; vatNote: (rate: string) => string; noVat: string };
     perMonth: string; perYear: string; billedYearly: (amount: string) => string; billedMonthly: string; free: string; quote: string;
     mostPopular: string; current: string; startFree: string; choose: (name: string) => string; contactSales: string;
@@ -449,7 +457,32 @@ const ar: SiteText = {
       body: 'باقات للباحثين عن عمل ولمسؤولي التوظيف المستقلين وللشركات. الأسعار بعملة بلدك وشاملة الضريبة، وتُدفع بالبطاقة أو بالمحفظة، وبالتقسيط عبر تمارا للاشتراك السنوي في السعودية والإمارات.',
     },
     audience: { seekers: 'للباحثين عن عمل', recruiters: 'لمسؤولي التوظيف', companies: 'للشركات' },
-    interval: { month: 'شهري', year: 'سنوي', save: 'وفّر 20%' },
+    interval: { month: 'شهري', year: 'سنوي', saveUpTo: (pct) => `وفّر حتى ${pct}٪` },
+    save: {
+      pct: (pct) => `وفّر ${pct}٪`,
+      monthsFree: (n) => (n === 1 ? 'شهر مجاني' : n === 2 ? 'شهران مجانًا' : n <= 10 ? `${n} أشهر مجانًا` : `${n} شهرًا مجانًا`),
+      youSave: (amount) => `توفّر ${amount}`,
+      perMonthExact: (amount) => `أي ${amount} شهريًا`,
+    },
+    seats: {
+      one: 'مستخدم واحد', oneSub: 'لمسؤول توظيف مستقل يعمل بمفرده',
+      many: (n) => (n === 2 ? 'مستخدمان' : n <= 10 ? `${n} مستخدمين` : `${n} مستخدمًا`),
+      teamSub: 'لفريق توظيف في مساحة عمل واحدة للشركة', ownerOnly: 'المالك فقط — أضف فريقك في باقة مدفوعة', unlimited: 'عدد غير محدود من المستخدمين',
+    },
+    promo: {
+      percent: (v) => `خصم ${v}٪`, amount: (a) => `خصم ${a}`, freeDays: (n) => (n === 1 ? 'يوم واحد مجانًا' : n === 2 ? 'يومان مجانًا' : n <= 10 ? `${n} أيام مجانًا` : `${n} يومًا مجانًا`),
+      left: (n, max) => `متبقٍ ${n} من ${max}`, until: (date) => `حتى ${date}`,
+      firstMonth: (a) => `للشهر الأول، ثم ${a} شهريًا`, firstYear: (a) => `للسنة الأولى، ثم ${a} سنويًا`,
+      trialThen: (n, a) => `مجانًا لمدة ${n === 1 ? 'يوم واحد' : n === 2 ? 'يومين' : n <= 10 ? `${n} أيام` : `${n} يومًا`}، ثم ${a}`,
+      startTrial: 'ابدأ التجربة المجانية',
+    },
+    who: {
+      title: 'مسؤول توظيف مستقل أم شركة؟',
+      body: 'الفرق في عدد المستخدمين: باقة مسؤول التوظيف لشخص واحد، وباقة الشركة لفريق كامل.',
+      recruiter: { title: 'مسؤول توظيف مستقل', tag: 'لفرد واحد', users: 'مستخدم واحد', points: ['مستخدم واحد فقط، ولا يمكن إضافة أعضاء.', 'مساحة عمل شخصية باسمك.', 'تُراجع الوظائف قبل نشرها، ولا تُمنح شارة التوثيق.'], see: 'باقات مسؤول التوظيف' },
+      company: { title: 'شركة', tag: 'لفريق', users: (min, max) => `من ${min} إلى ${max} مستخدمًا، أو أكثر`, points: ['عدة مستخدمين بأدوار وصلاحيات، حسب الباقة.', 'مساحة عمل واحدة للشركة يعمل فيها الفريق معًا.', 'شارة الشركة الموثّقة بعد التوثيق.'], see: 'باقات الشركات' },
+      note: 'باقات مسؤول التوظيف للأفراد فقط؛ لا يمكن للشركات الاشتراك فيها مهما كان السعر.',
+    },
     market: { label: 'الدولة', EG: 'مصر', SA: 'السعودية', AE: 'الإمارات', INTL: 'دولي', vatNote: (rate) => `الأسعار شاملة ضريبة القيمة المضافة (${rate}).`, noVat: 'الأسعار بالدولار الأمريكي.' },
     perMonth: '/ شهريًا', perYear: '/ سنويًا', billedYearly: (amount) => `تُسدّد سنويًا بقيمة ${amount}`, billedMonthly: 'تتجدد شهريًا، وتُلغى في أي وقت', free: 'مجانًا', quote: 'عرض مخصص',
     mostPopular: 'الأكثر اختيارًا', current: 'باقتك الحالية', startFree: 'ابدأ مجانًا', choose: (name) => `اختر ${name}`, contactSales: 'تواصل مع المبيعات',
@@ -471,14 +504,14 @@ const ar: SiteText = {
       title: 'أسئلة شائعة',
       items: [
         { q: 'هل يمكنني الإلغاء في أي وقت؟', a: 'نعم. الاشتراك الشهري يتجدد تلقائيًا ويمكن إيقاف التجديد في أي وقت من صفحة الاشتراك، وتستمر المزايا حتى نهاية الفترة المدفوعة.' },
-        { q: 'كيف يعمل الاشتراك السنوي؟', a: 'يُدفع مرة واحدة مقدمًا بخصم 20% مقارنة بالشهري. في السعودية والإمارات يمكن تقسيطه عبر تمارا، وتُفعّل الباقة فور اعتماد الدفعة الأولى.' },
+        { q: 'كيف يعمل الاشتراك السنوي؟', a: 'يُدفع مرة واحدة مقدمًا، وهو أرخص من 12 دفعة شهرية؛ وتعرض كل باقة مقدار التوفير الفعلي بعملة بلدك. في السعودية والإمارات يمكن تقسيطه عبر تمارا، وتُفعّل الباقة فور اعتماد الدفعة الأولى.' },
         { q: 'هل الأسعار شاملة الضريبة؟', a: 'نعم. في مصر والسعودية والإمارات تُعرض الأسعار بالعملة المحلية شاملة ضريبة القيمة المضافة، وتصلك فاتورة ضريبية لكل عملية.' },
         { q: 'ماذا يحدث عند تجاوز حدود الباقة؟', a: 'تظهر لك رسالة واضحة بالحد والمستخدم منه، ويمكنك الترقية أو شراء إضافة. لا تُقطع الخدمة فجأة ولا تُحذف بياناتك.' },
-        { q: 'ما الفرق بين باقة مسؤول التوظيف وباقة الشركة؟', a: 'باقة مسؤول التوظيف لمساحة عمل شخصية لفرد واحد. باقات الشركات لمساحة عمل مشتركة بأعضاء وأدوار وصلاحيات، وتتاح لها شارة الشركة الموثّقة بعد التوثيق.' },
+        { q: 'ما الفرق بين باقة مسؤول التوظيف وباقة الشركة؟', a: 'عدد المستخدمين. باقة مسؤول التوظيف لمستخدم واحد فقط في مساحة عمل شخصية، ولا يمكن إضافة أعضاء إليها. باقات الشركات لفريق من عدة مستخدمين بأدوار وصلاحيات في مساحة عمل مشتركة، وتتاح لها شارة الشركة الموثّقة بعد التوثيق. ولا يمكن للشركات الاشتراك في باقات مسؤول التوظيف.' },
         { q: 'هل تُنشر وظائفي مباشرة؟', a: 'وظائف الشركات الموثّقة تُنشر فورًا. غير ذلك تمر الوظيفة بمراجعة سريعة من فريق نجم قبل الظهور على اللوحة.' },
       ],
     },
-    recruiterNote: 'باقات مسؤول التوظيف لمساحة عمل شخصية بمقعد واحد. تُراجع الوظائف قبل النشر، ولا تُمنح شارة التوثيق إلا للشركات.',
+    recruiterNote: 'باقات مسؤول التوظيف لمستخدم واحد في مساحة عمل شخصية. تُراجع الوظائف قبل النشر، ولا تُمنح شارة التوثيق إلا للشركات.',
     enterprise: { name: 'المؤسسات', body: 'ناقش احتياجات شركتك من الوظائف وأعضاء الفريق ومساحات العمل، واحصل على عرض يناسب نطاق استخدامك.', bullets: ['حدّد حجم التوظيف المتوقع.', 'ناقش عدد المستخدمين ومساحات العمل.', 'تعرّف على الخيارات المناسبة لفريقك.', 'احصل على عرض واضح النطاق والتكلفة.'] },
     loading: 'جارٍ تحميل الأسعار…', offline: 'نعرض أسعار القائمة المعتمدة؛ قد تختلف قليلًا عند الدفع.',
   },
@@ -844,7 +877,32 @@ const en: SiteText = {
       body: 'Plans for job seekers, independent recruiters and companies. Prices are shown in your currency with tax included, paid by card or wallet — or in instalments with Tamara on yearly plans in Saudi Arabia and the UAE.',
     },
     audience: { seekers: 'Job seekers', recruiters: 'Recruiters', companies: 'Companies' },
-    interval: { month: 'Monthly', year: 'Yearly', save: 'Save 20%' },
+    interval: { month: 'Monthly', year: 'Yearly', saveUpTo: (pct) => `Save up to ${pct}%` },
+    save: {
+      pct: (pct) => `Save ${pct}%`,
+      monthsFree: (n) => (n === 1 ? '1 month free' : `${n} months free`),
+      youSave: (amount) => `you save ${amount}`,
+      perMonthExact: (amount) => `that is ${amount} a month`,
+    },
+    seats: {
+      one: '1 user', oneSub: 'For one independent recruiter working alone',
+      many: (n) => `${n} users`,
+      teamSub: 'Your hiring team in one company workspace', ownerOnly: 'Just the owner — add your team on a paid plan', unlimited: 'Unlimited users',
+    },
+    promo: {
+      percent: (v) => `${v}% off`, amount: (a) => `${a} off`, freeDays: (n) => (n === 1 ? '1 day free' : `${n} days free`),
+      left: (n, max) => `${n} of ${max} left`, until: (date) => `until ${date}`,
+      firstMonth: (a) => `for the first month, then ${a} / month`, firstYear: (a) => `for the first year, then ${a} / year`,
+      trialThen: (n, a) => `Free for ${n === 1 ? '1 day' : `${n} days`}, then ${a}`,
+      startTrial: 'Start free trial',
+    },
+    who: {
+      title: 'Independent recruiter or company?',
+      body: 'The difference is the number of users: a recruiter plan is for one person, a company plan is for a team.',
+      recruiter: { title: 'Independent recruiter', tag: 'For one person', users: '1 user', points: ['One user only — no team members.', 'A personal workspace in your name.', 'Jobs are reviewed before publishing; no Verified badge.'], see: 'Recruiter plans' },
+      company: { title: 'Company', tag: 'For a team', users: (min, max) => `${min} to ${max} users, or more`, points: ['Several users with roles and permissions, by plan.', 'One company workspace your team shares.', 'The Verified company badge after verification.'], see: 'Company plans' },
+      note: 'Recruiter plans are for individuals only; companies cannot subscribe to them, whatever the price.',
+    },
     market: { label: 'Country', EG: 'Egypt', SA: 'Saudi Arabia', AE: 'UAE', INTL: 'International', vatNote: (rate) => `Prices include VAT (${rate}).`, noVat: 'Prices in US dollars.' },
     perMonth: '/ month', perYear: '/ year', billedYearly: (amount) => `Billed yearly at ${amount}`, billedMonthly: 'Renews monthly, cancel any time', free: 'Free', quote: 'Custom quote',
     mostPopular: 'Most popular', current: 'Your plan', startFree: 'Start for free', choose: (name) => `Choose ${name}`, contactSales: 'Contact sales',
@@ -866,14 +924,14 @@ const en: SiteText = {
       title: 'Frequently asked questions',
       items: [
         { q: 'Can I cancel at any time?', a: 'Yes. Monthly plans renew automatically and you can stop the renewal at any time from your subscription page; your plan stays active until the end of the paid period.' },
-        { q: 'How does the yearly plan work?', a: 'It is paid once, up front, at 20% less than monthly. In Saudi Arabia and the UAE you can split it with Tamara; the plan activates as soon as the first instalment is approved.' },
+        { q: 'How does the yearly plan work?', a: 'It is paid once, up front, for less than 12 monthly payments; each plan shows exactly what you save in your currency. In Saudi Arabia and the UAE you can split it with Tamara; the plan activates as soon as the first instalment is approved.' },
         { q: 'Do prices include tax?', a: 'Yes. In Egypt, Saudi Arabia and the UAE prices are shown in local currency with VAT included, and you receive a tax invoice for every payment.' },
         { q: 'What happens when I reach a plan limit?', a: 'You see a clear message with the limit and what you have used, and you can upgrade or buy an add-on. Service is never cut off abruptly and your data is never deleted.' },
-        { q: 'What is the difference between a recruiter plan and a company plan?', a: 'A recruiter plan is a personal workspace for one person. Company plans are a shared workspace with members, roles and permissions, and can carry the Verified company badge after verification.' },
+        { q: 'What is the difference between a recruiter plan and a company plan?', a: 'The number of users. A recruiter plan is for one user in a personal workspace; no members can be added. Company plans are for a team of users with roles and permissions in a shared workspace, and can carry the Verified company badge after verification. Companies cannot subscribe to recruiter plans.' },
         { q: 'Are my jobs published immediately?', a: 'Jobs from verified companies go live at once. Otherwise a job passes a quick review by the Nagm team before it appears on the board.' },
       ],
     },
-    recruiterNote: 'Recruiter plans are a one-seat personal workspace. Jobs are reviewed before publishing, and the Verified badge is reserved for companies.',
+    recruiterNote: 'Recruiter plans are one user in a personal workspace. Jobs are reviewed before publishing, and the Verified badge is reserved for companies.',
     enterprise: { name: 'Enterprise', body: "Talk through your company's needs for jobs, team members and workspaces, and get a quote that fits your scale of use.", bullets: ['Define your expected hiring volume.', 'Discuss the number of users and workspaces.', 'Explore the options that suit your team.', 'Get a quote with clear scope and cost.'] },
     loading: 'Loading prices…', offline: 'Showing list prices; the amount may differ slightly at checkout.',
   },
