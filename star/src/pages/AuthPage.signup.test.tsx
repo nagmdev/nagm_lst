@@ -17,6 +17,7 @@ vi.mock('../auth', async (importOriginal) => {
     authApi: {
       ...actual.authApi,
       register: vi.fn(),
+      resend: vi.fn(),
       requestPasswordReset: vi.fn(),
       login: vi.fn(),
       searchCompanies: vi.fn(),
@@ -329,3 +330,41 @@ describe('Arabic / RTL', () => {
     await waitFor(() => expect(recruiter()).toHaveFocus(), { timeout: 3000 });
   });
 });
+
+describe('when the code email does not go out', () => {
+  it('a created account whose code was not sent says so on the code page', async () => {
+    api.register.mockResolvedValue({ message: 'ok', id: 'u1', email: 'sara@example.com', emailSent: false });
+    renderSignup();
+    fillCandidate();
+    acceptTerms();
+    submit();
+    await screen.findByText('verify page');
+    expect(lastVerifyState).toEqual(expect.objectContaining({ email: 'sara@example.com', notice: 'codeNotSent' }));
+  });
+
+  it('signing up again with an unconfirmed email sends a new code and goes to enter it (no dead end)', async () => {
+    api.register.mockRejectedValue({ response: { status: 409, data: { pendingVerification: true, error: 'x' } } });
+    api.resend.mockResolvedValue({ message: 'ok' });
+    renderSignup();
+    fillCandidate();
+    acceptTerms();
+    submit();
+    await screen.findByText('verify page');
+    expect(api.resend).toHaveBeenCalledWith('sara@example.com');
+    expect(lastVerifyState).toEqual(expect.objectContaining({ email: 'sara@example.com', notice: 'pendingAccount' }));
+    // The password typed now may not be that account's: never used to sign in.
+    expect(pendingSignInFor('sara@example.com')).toBeUndefined();
+  });
+
+  it('…and if even that code cannot be sent, the code page says so', async () => {
+    api.register.mockRejectedValue({ response: { status: 409, data: { pendingVerification: true } } });
+    api.resend.mockRejectedValue({ response: { status: 503, data: { code: 'EMAIL_NOT_SENT' } } });
+    renderSignup();
+    fillCandidate();
+    acceptTerms();
+    submit();
+    await screen.findByText('verify page');
+    expect(lastVerifyState).toEqual(expect.objectContaining({ notice: 'codeNotSent' }));
+  });
+});
+

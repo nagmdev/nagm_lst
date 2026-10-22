@@ -125,6 +125,8 @@ const en = {
   verifying: 'Verifying…',
   verifyContinue: 'Verify & continue',
   newCodeSent: 'A new code is on its way.',
+  codeNotSent: 'Your account is created, but we couldn’t send the code just now. Tap “Resend code” in a minute.',
+  pendingAccount: 'You started signing up with this email before. We sent you a new code — after confirming, sign in with the password you chose then.',
   backToSignup: 'Back to sign up / Change email',
   // fallbacks when the server gives no usable message
   failCreate: 'Could not create your account.',
@@ -250,6 +252,8 @@ const ar: AuthText = {
   verifying: 'جارٍ التحقق…',
   verifyContinue: 'تحقّق وتابع',
   newCodeSent: 'أرسلنا رمزاً جديداً.',
+  codeNotSent: 'تم إنشاء حسابك، لكن تعذّر إرسال الرمز الآن. اضغط «إعادة إرسال الرمز» بعد دقيقة.',
+  pendingAccount: 'بدأت التسجيل بهذا البريد من قبل. أرسلنا لك رمزاً جديداً — بعد التأكيد سجّل الدخول بكلمة المرور التي اخترتها وقتها.',
   backToSignup: 'العودة للتسجيل / تغيير البريد',
   failCreate: 'تعذّر إنشاء حسابك.',
   failSignIn: 'تعذّر تسجيل دخولك. تحقّق من البريد الإلكتروني وكلمة المرور.',
@@ -274,6 +278,8 @@ export function useAuthText(): AuthText & { lang: Lang; isAr: boolean } {
 // Unknown messages pass through unchanged (better English than nothing).
 
 const SERVER_AR: Record<string, string> = {
+  'We could not send the code right now. Please try again in a few minutes.': 'تعذّر إرسال الرمز الآن. حاول مرة أخرى بعد دقائق.',
+  'This email already has an account waiting to be confirmed. We will send a new code.': 'هذا البريد لديه حساب بانتظار التأكيد. سنرسل رمزاً جديداً.',
   'Email already exists': 'يوجد حساب بهذا البريد الإلكتروني بالفعل.',
   'An account already exists for this email address.': 'يوجد حساب بهذا البريد الإلكتروني بالفعل.',
   'This email already has a personal account. A company must register with its own business email address.':

@@ -157,7 +157,7 @@ export const authApi = {
       .catch(() => ({ companies: [], suggestedByDomain: [] })),
   register: (payload: RegisterPayload) =>
     api
-      .post<{ message: string; id: string; email: string; requestedRole?: 'recruiter' | 'company' | null }>(
+      .post<{ message: string; id: string; email: string; requestedRole?: 'recruiter' | 'company' | null; emailSent?: boolean }>(
         '/auth/register',
         { ...payload, email: payload.email.trim() },
       )
