@@ -5,7 +5,7 @@ import AuthShell from './AuthShell';
 import { authApi, handoffToApp, apiError, pendingSignInFor, forgetPendingSignIn } from '../auth';
 import { useAuthText, localizeServerMessage } from '../i18n/authText';
 
-interface VState { email?: string; rememberMe?: boolean; returnTo?: string | null }
+interface VState { email?: string; rememberMe?: boolean; returnTo?: string | null; notice?: 'codeNotSent' | 'pendingAccount' }
 
 const Verify: React.FC = () => {
   const navigate = useNavigate();
@@ -21,8 +21,10 @@ const Verify: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
-  const [err, setErr] = useState('');
-  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState(state?.notice === 'codeNotSent' ? t.codeNotSent : '');
+  // Set by sign-up: the code could not be sent, or this was an earlier,
+  // unconfirmed sign-up that just got a new code.
+  const [msg, setMsg] = useState(state?.notice === 'pendingAccount' ? t.pendingAccount : '');
 
   const BackArrow = t.isAr ? ArrowRight : ArrowLeft;
 

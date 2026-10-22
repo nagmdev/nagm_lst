@@ -122,3 +122,25 @@ describe('Verify', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('A new code is on its way.');
   });
 });
+
+describe('Verify — when the code did not go out', () => {
+  it('says the code was not sent (instead of "we sent a code") and resend explains a failed send', async () => {
+    api.resend.mockRejectedValue({ response: { status: 503, data: { error: 'We could not send the code right now. Please try again in a few minutes.', code: 'EMAIL_NOT_SENT' } } });
+    renderVerify({ email: 'sara@example.com', rememberMe: true, notice: 'codeNotSent' });
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t send the code/);
+    fireEvent.click(screen.getByRole('button', { name: 'Resend code' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('We could not send the code right now'));
+  });
+
+  it('an earlier unconfirmed sign-up is told a new code is on the way, and to use the first password', () => {
+    renderVerify({ email: 'sara@example.com', rememberMe: true, notice: 'pendingAccount' });
+    expect(screen.getByRole('status')).toHaveTextContent(/password you chose then/);
+  });
+
+  it('in Arabic too', () => {
+    act(() => setLang('ar'));
+    renderVerify({ email: 'sara@example.com', rememberMe: true, notice: 'codeNotSent' });
+    expect(screen.getByRole('alert')).toHaveTextContent(/تعذّر إرسال الرمز/);
+    act(() => setLang('en'));
+  });
+});

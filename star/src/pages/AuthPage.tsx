@@ -392,14 +392,28 @@ const AuthPage: React.FC = () => {
         if (values.websiteUrl.trim()) payload.websiteUrl = values.websiteUrl.trim();
       }
       try {
-        await authApi.register(payload);
+        const created = await authApi.register(payload);
         // Registration sends an OTP; verify it, then we auto-sign-in and hand off.
         // The password stays in memory for that sign-in — never in history.state,
         // which the browser keeps (and restores) with the page history.
         rememberPendingSignIn(email, values.password);
-        navigate('/verify', { state: { email, rememberMe: true, returnTo } });
+        // emailSent:false — the account exists but the code did not go: say so.
+        navigate('/verify', { state: { email, rememberMe: true, returnTo, notice: created?.emailSent === false ? 'codeNotSent' : undefined } });
       } catch (e2) {
-        const resp = (e2 as { response?: { status?: number; data?: { guestAccount?: boolean } } })?.response;
+        const resp = (e2 as { response?: { status?: number; data?: { guestAccount?: boolean; pendingVerification?: boolean } } })?.response;
+        if (resp?.status === 409 && resp.data?.pendingVerification) {
+          // Signed up before but never confirmed (often: the code never came).
+          // Send a fresh code and go enter it. Their password is the one from
+          // that first sign-up, so nothing is remembered for auto sign-in.
+          let notice: 'pendingAccount' | 'codeNotSent' = 'pendingAccount';
+          try {
+            await authApi.resend(email);
+          } catch (e3) {
+            if ((e3 as { response?: { status?: number } })?.response?.status === 503) notice = 'codeNotSent';
+          }
+          navigate('/verify', { state: { email, rememberMe: true, returnTo, notice } });
+          return;
+        }
         if (resp?.status === 409 && resp.data?.guestAccount) {
           // They applied to a job as a guest. Sign-up no longer writes to that
           // account; they finish it by setting a password with an emailed code,
