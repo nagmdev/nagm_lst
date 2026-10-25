@@ -10,10 +10,13 @@ import { LegacyRedirect, FEATURE_REDIRECTS, SOLUTION_REDIRECTS } from './legacyR
  * The home page: the owner's copy in both languages, links into the pre-auth
  * flow, and no prices invented on the page (they come from data/pricing).
  */
+// English lives at /en; every link on an English page stays in English.
+const Where = () => <div data-testid="where">{useLocation().pathname}</div>;
 const renderHome = () =>
   render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={['/en']}>
       <Landing />
+      <Where />
     </MemoryRouter>,
   );
 
@@ -44,21 +47,40 @@ describe('home page', () => {
 
   it('switches language from the nav', () => {
     renderHome();
-    fireEvent.click(screen.getByRole('button', { name: 'التبديل إلى العربية' }));
+    // The name starts with the visible text, so "click عربي" works for voice control.
+    fireEvent.click(screen.getByRole('button', { name: 'عربي — التبديل إلى العربية' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('أظهر قدراتك.');
     expect(document.documentElement.getAttribute('lang')).toBe('ar');
+    // …and to the Arabic address of the same page.
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/);
   });
 
   it('teases four plans with the approved list prices and links to the full pricing page', () => {
     localStorage.setItem('nagm_market', 'INTL');
     renderHome();
     const plans = screen.getByRole('link', { name: /Compare all plans and prices/ });
-    expect(plans).toHaveAttribute('href', '/pricing');
+    expect(plans).toHaveAttribute('href', '/en/pricing');
     const growth = screen.getByRole('article', { name: 'Growth' });
     expect(within(growth).getByText('$120')).toBeInTheDocument();
     const pro = screen.getByRole('article', { name: 'Pro' });
     expect(within(pro).getByText('$5')).toBeInTheDocument();
     expect(within(screen.getByRole('article', { name: 'Enterprise' })).getByRole('link', { name: /Contact sales/ })).toHaveAttribute('href', 'mailto:sales@nagm.io');
+  });
+
+  it("links Nagm's four social accounts from the footer, in a new tab", () => {
+    renderHome();
+    const social = within(screen.getByRole('contentinfo')).getByRole('list', { name: 'Nagm on social media' });
+    const links = within(social).getAllByRole('link');
+    expect(links.map((a) => [a.getAttribute('aria-label'), a.getAttribute('href')])).toEqual([
+      ['Nagm on Facebook', 'https://www.facebook.com/nagmio2025'],
+      ['Nagm on Instagram', 'https://www.instagram.com/nagm._2025'],
+      ['Nagm on YouTube', 'https://www.youtube.com/@Nagm-io'],
+      ['Nagm on X', 'https://x.com/Nagm_2025'],
+    ]);
+    for (const a of links) {
+      expect(a).toHaveAttribute('target', '_blank');
+      expect(a.getAttribute('rel')).toContain('noopener');
+    }
   });
 
   it('opens the Products menu with links to page sections', () => {
@@ -67,8 +89,8 @@ describe('home page', () => {
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const panel = screen.getByRole('region', { name: 'Products' });
-    expect(within(panel).getByRole('link', { name: /ATS check/ })).toHaveAttribute('href', '/job-seekers#match');
-    expect(within(panel).getByRole('link', { name: /Team collaboration/ })).toHaveAttribute('href', '/companies#team');
+    expect(within(panel).getByRole('link', { name: /ATS check/ })).toHaveAttribute('href', '/en/job-seekers#match');
+    expect(within(panel).getByRole('link', { name: /Team collaboration/ })).toHaveAttribute('href', '/en/companies#team');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('region', { name: 'Products' })).not.toBeInTheDocument();
   });

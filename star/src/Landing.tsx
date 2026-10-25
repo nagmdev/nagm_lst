@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useLang } from './i18n/lang';
+import { Link } from './i18n/links';
 import { useSiteText } from './i18n/siteText';
 import { Shell, Hero, Section, SectionHead, Strip, CtaBand, Lines, Eyebrow, Bullets, usePageMeta, links } from './design/ui';
 import { SeekerStage, MatchCard, PipelineBoard, ScaleBox, CandidateCard, ApplicantsTable, FunnelPanel } from './design/mock';
 import { Icon, Arrow, type IconName } from './design/icons';
 import { PlanCard } from './design/plans';
-import { PLANS, staticCatalog, guessMarket } from './data/pricing';
+import { PLANS, staticCatalog, guessMarket, type Market } from './data/pricing';
+import { useClientValue } from './utils/useClientValue';
 
 /**
  * nagm.io home. CTAs go to nagm.io's own login/register (the pre-auth flow);
@@ -19,12 +19,9 @@ const TEASER_PLANS = ['CANDIDATE_FREE', 'CANDIDATE_PRO', 'COMPANY_GROWTH', 'COMP
 
 export default function Landing() {
   const t = useSiteText();
-  const lang = useLang();
-  usePageMeta(
-    lang === 'ar' ? 'نجم — أظهر قدراتك، اكتشف الأنسب، واتخذ خطوتك التالية' : 'Nagm — Show what you can do. Find the right fit.',
-    t.home.hero.body ?? '',
-  );
-  const cat = useMemo(() => staticCatalog(guessMarket()), []);
+  usePageMeta('/');
+  const market = useClientValue<Market>(guessMarket, 'INTL');
+  const cat = useMemo(() => staticCatalog(market), [market]);
   const h = t.home;
 
   return (

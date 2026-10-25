@@ -45,3 +45,8 @@ next-env.d.ts
 test-results/
 playwright-report/
 blob-report/
+
+# server bundle used only by scripts/prerender.mjs
+/dist-ssr
+# reports from npm run seo:audit
+/seo-report

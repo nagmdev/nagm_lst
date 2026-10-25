@@ -1,5 +1,59 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/features", "destination": "/", "permanent": true },
+    { "source": "/features/:slug(profile|candidate-profile)", "destination": "/job-seekers#profile", "permanent": true },
+    { "source": "/features/:slug(cv-builder|resume-builder|cv)", "destination": "/job-seekers#cv", "permanent": true },
+    { "source": "/features/:slug(ats|ats-analysis|ats-check|match)", "destination": "/job-seekers#match", "permanent": true },
+    { "source": "/features/:slug(interview|interview-practice|practice)", "destination": "/job-seekers#interview", "permanent": true },
+    { "source": "/features/:slug(jobs|job-posting|ai-job-posting)", "destination": "/companies#jobs", "permanent": true },
+    { "source": "/features/:slug(pipeline|ats-pipeline)", "destination": "/companies#stages", "permanent": true },
+    { "source": "/features/applicants", "destination": "/companies#review", "permanent": true },
+    { "source": "/features/:slug(talent-pool|candidate-base)", "destination": "/companies#base", "permanent": true },
+    { "source": "/features/rediscovery", "destination": "/companies#rediscover", "permanent": true },
+    { "source": "/features/:slug(workspace|team)", "destination": "/companies#workspace", "permanent": true },
+    { "source": "/features/analytics", "destination": "/companies#analytics", "permanent": true },
+    { "source": "/features/:slug", "destination": "/", "permanent": true },
+    { "source": "/solutions", "destination": "/companies", "permanent": true },
+    { "source": "/solutions/:slug(job-seekers|candidates|seekers)", "destination": "/job-seekers", "permanent": true },
+    { "source": "/solutions/enterprise", "destination": "/pricing?for=companies", "permanent": true },
+    { "source": "/solutions/:slug", "destination": "/companies", "permanent": true },
+    { "source": "/why-nagm", "destination": "/#why", "permanent": true },
+    { "source": "/plans", "destination": "/pricing", "permanent": true },
+    { "source": "/jobs", "destination": "https://app.nagm.io/jobs", "permanent": true },
+    { "source": "/jobs/:path*", "destination": "https://app.nagm.io/jobs/:path*", "permanent": true },
+    { "source": "/recruiters/:path*", "destination": "https://app.nagm.io/recruiters/:path*", "permanent": true },
+    { "source": "/resume-builder", "destination": "https://app.nagm.io/resume-builder", "permanent": true },
+    { "source": "/ats/:path*", "destination": "https://app.nagm.io/ats/:path*", "permanent": true },
+    { "source": "/ats", "destination": "https://app.nagm.io/ats", "permanent": true },
+    { "source": "/practice/:path*", "destination": "https://app.nagm.io/practice/:path*", "permanent": true },
+    { "source": "/practice", "destination": "https://app.nagm.io/practice", "permanent": true },
+    { "source": "/p/:token", "destination": "https://app.nagm.io/p/:token", "permanent": false },
+    { "source": "/invite/:token", "destination": "https://app.nagm.io/invite/:token", "permanent": false },
+    { "source": "/co/:key", "destination": "https://app.nagm.io/co/:key", "permanent": false }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/login", "destination": "/app" },
+    { "source": "/register", "destination": "/app" },
+    { "source": "/register/company", "destination": "/app" },
+    { "source": "/verify", "destination": "/app" },
+    { "source": "/signup", "destination": "/app" },
+    { "source": "/sign-up", "destination": "/app" },
+    { "source": "/signin", "destination": "/app" },
+    { "source": "/sign-in", "destination": "/app" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
   ]
 }

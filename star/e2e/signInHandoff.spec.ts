@@ -57,7 +57,8 @@ test('signing in lands in the app with a one-time code, never a token, in the UR
 
   const url = new URL(page.url());
   expect(url.origin).toBe(APP);
-  expect(url.hash).toBe('#code=one-time-code-123');
+  // The language rides along so the app opens in the one the visitor was using.
+  expect(url.hash).toBe('#code=one-time-code-123&lang=ar');
   // The code is useless without the nonce cookie; the token itself never rides
   // in the URL, where it would land in history, logs and referrers.
   expect(page.url()).not.toContain('test.access.token');

@@ -1,4 +1,7 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+
+// Layout effects don't run when a page is rendered ahead of time; there a plain effect stands in.
+const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 import { useLang, type Lang } from '../i18n/lang';
 import { Icon, type IconName } from './icons';
 
@@ -406,7 +409,7 @@ export function ScaleBox({ width, height, children, max = 1 }: { width: number; 
   const lang = useLang();
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  useLayoutEffect(() => {
+  useBrowserLayoutEffect(() => {
     const el = ref.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(([entry]) => setScale(Math.min(max, entry.contentRect.width / width)));
@@ -414,7 +417,9 @@ export function ScaleBox({ width, height, children, max = 1 }: { width: number; 
     return () => ro.disconnect();
   }, [width, max]);
   return (
-    <div ref={ref} style={{ width: '100%', height: height * scale, position: 'relative' }}>
+    // The height comes from the aspect ratio, so a pre-rendered page already has
+    // the right height before the scale is measured: nothing below it moves.
+    <div ref={ref} style={{ width: '100%', maxWidth: width * max, aspectRatio: `${width} / ${height}`, position: 'relative' }}>
       <div style={{ width, height, position: 'absolute', top: 0, insetInlineStart: 0, transform: `scale(${scale})`, transformOrigin: lang === 'ar' ? 'top right' : 'top left' }}>
         {children}
       </div>

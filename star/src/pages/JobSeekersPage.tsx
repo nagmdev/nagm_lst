@@ -1,4 +1,3 @@
-import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
 import { Shell, Hero, Section, SectionHead, Strip, FeatureCard, Steps, Bullets, Note, CtaBand, usePageMeta, links } from '../design/ui';
 import { SeekerStage, AutofillCard, CandidateCard, MatchCard, AnswerCard, ScaleBox } from '../design/mock';
@@ -9,9 +8,8 @@ const STRIP_ICONS: IconName[] = ['profile', 'cv', 'match', 'search', 'bell', 'in
 
 export default function JobSeekersPage() {
   const t = useSiteText();
-  const lang = useLang();
   const s = t.seekers;
-  usePageMeta(lang === 'ar' ? 'نجم للباحثين عن عمل — ملف مهني، سيرة ذاتية، تحليل توافق' : 'Nagm for job seekers — profile, CV, match analysis', s.hero.body ?? '');
+  usePageMeta('/job-seekers');
 
   return (
     <Shell>

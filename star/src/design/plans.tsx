@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from '../i18n/links';
 import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
 import { Icon, Arrow } from './icons';

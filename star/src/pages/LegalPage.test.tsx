@@ -30,11 +30,12 @@ describe('Terms of Service and Privacy Policy', () => {
   it('links each document to the other', () => {
     renderDoc('terms');
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
+    // In English, to the English addresses.
+    expect(within(main).getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/en/privacy');
     // …and the site footer offers both on every page.
     const footer = screen.getByRole('contentinfo');
-    expect(within(footer).getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terms');
-    expect(within(footer).getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
+    expect(within(footer).getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/en/terms');
+    expect(within(footer).getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/en/privacy');
   });
 
   it('reads in Arabic, right-to-left', () => {

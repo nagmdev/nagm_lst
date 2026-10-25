@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from '../i18n/links';
 import { useLang } from '../i18n/lang';
 import { LEGAL } from '../i18n/legalText';
 import { Shell, Eyebrow, usePageMeta } from '../design/ui';
@@ -9,7 +9,7 @@ export default function LegalPage({ doc }: { doc: 'terms' | 'privacy' }) {
   const d = LEGAL[doc][lang];
   const other = doc === 'terms' ? 'privacy' : 'terms';
   const ar = lang === 'ar';
-  usePageMeta(`${d.title} — ${ar ? 'نجم' : 'Nagm'}`, d.intro);
+  usePageMeta(doc === 'terms' ? '/terms' : '/privacy');
 
   return (
     <Shell>
