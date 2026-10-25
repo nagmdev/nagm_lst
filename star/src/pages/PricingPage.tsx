@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useClientValue } from '../utils/useClientValue';
 import { useSearchParams } from 'react-router-dom';
 import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
@@ -23,23 +24,26 @@ export default function PricingPage() {
   const t = useSiteText();
   const lang = useLang();
   const p = t.pricing;
-  usePageMeta(lang === 'ar' ? 'أسعار نجم — باقات للباحثين عن عمل ومسؤولي التوظيف والشركات' : 'Nagm pricing — plans for job seekers, recruiters and companies', p.hero.body ?? '');
+  usePageMeta('/pricing');
 
   const [params, setParams] = useSearchParams();
   const paramMarket = (params.get('market') || '').toUpperCase() as Market;
-  const [market, setMarket] = useState<Market>(MARKETS.includes(paramMarket) ? paramMarket : guessMarket());
+  // The guess needs the browser (saved choice, time zone): pre-rendered pages show INTL first.
+  const guessed = useClientValue<Market>(guessMarket, 'INTL');
+  const [picked, setMarket] = useState<Market | null>(MARKETS.includes(paramMarket) ? paramMarket : null);
+  const market = picked ?? guessed;
   const paramAud = (params.get('for') || '').toLowerCase();
   const [audience, setAudience] = useState<Audience>(paramAud === 'companies' ? 'COMPANY' : paramAud === 'recruiters' ? 'RECRUITER' : paramAud === 'seekers' ? 'CANDIDATE' : 'COMPANY');
   const [interval, setInterval] = useState<Interval>('YEAR');
   const [cat, setCat] = useState<Catalog>(() => staticCatalog(market));
 
   useEffect(() => {
-    rememberMarket(market);
+    if (picked) rememberMarket(picked);
     setCat(staticCatalog(market));
     const ctrl = new AbortController();
     fetchCatalog(market, ctrl.signal).then((c) => { if (!ctrl.signal.aborted) setCat(c); }).catch(() => { /* list prices stay */ });
     return () => ctrl.abort();
-  }, [market]);
+  }, [market, picked]);
 
   const pick = (m: Market) => {
     setMarket(m);
@@ -82,7 +86,7 @@ export default function PricingPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="ns-seg" role="tablist" aria-label={lang === 'ar' ? 'الفئة' : 'Audience'}>
               {AUDIENCES.map((a) => (
-                <button key={a} type="button" role="tab" aria-selected={audience === a} aria-pressed={audience === a} onClick={() => setAudience(a)}>
+                <button key={a} type="button" role="tab" aria-selected={audience === a} onClick={() => setAudience(a)}>
                   <Icon name={audIcon[a]} size={16} />{audLabel[a]}
                 </button>
               ))}
@@ -96,12 +100,12 @@ export default function PricingPage() {
             <span className="ns-body" style={{ fontSize: 13, marginInlineEnd: 4 }}><Icon name="globe" size={15} style={{ verticalAlign: -3, marginInlineEnd: 6 }} />{p.market.label}</span>
             {MARKETS.map((m) => (
               <button key={m} type="button" className="ns-market-pill" aria-pressed={market === m} onClick={() => pick(m)}>
-                {p.market[m]} <span className="ns-mono" style={{ opacity: .7, fontSize: 11 }}>{MARKET_META[m].currency}</span>
+                {p.market[m]} <span className="ns-mono" style={{ fontSize: 11 }}>{MARKET_META[m].currency}</span>
               </button>
             ))}
             <span className="ns-body" style={{ fontSize: 13, marginInlineStart: 'auto' }}>
               {market === 'INTL' ? p.market.noVat : p.market.vatNote(vatLabel(market))}
-              {!cat.live && <span style={{ opacity: .7 }}> · {p.offline}</span>}
+              {!cat.live && <span> · {p.offline}</span>}
             </span>
           </div>
         </div>

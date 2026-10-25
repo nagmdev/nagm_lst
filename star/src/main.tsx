@@ -55,10 +55,22 @@ window.addEventListener('unhandledrejection', (event) => {
   event.preventDefault();
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const app = (
   <React.StrictMode>
     <ErrorBoundary>
       <Root />
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+// Pages built ahead of time (scripts/prerender.mjs) say which address they
+// were rendered for. Take over that HTML only on that address; anything else
+// (the 404 page, sign-in) renders from scratch.
+const container = document.getElementById('root')!;
+const here = window.location.pathname.replace(/(.)\/+$/, '$1');
+if (container.dataset.prerendered === here && container.hasChildNodes()) {
+  ReactDOM.hydrateRoot(container, app);
+} else {
+  container.textContent = '';
+  ReactDOM.createRoot(container).render(app);
+}

@@ -1,4 +1,3 @@
-import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
 import { Shell, Hero, Section, SectionHead, Strip, FeatureCard, Steps, Note, CtaBand, usePageMeta, links } from '../design/ui';
 import { TeamStage, PipelineBoard, ApplicantsTable, TeamThread, FunnelPanel, CompanyHeader, ScaleBox } from '../design/mock';
@@ -9,9 +8,8 @@ const STRIP_ICONS: IconName[] = ['spark', 'applicants', 'stages', 'mention', 're
 
 export default function CompaniesPage() {
   const t = useSiteText();
-  const lang = useLang();
   const c = t.companies;
-  usePageMeta(lang === 'ar' ? 'نجم للشركات ومسؤولي التوظيف — وظائفك ومرشحوك وفريقك في مكان واحد' : 'Nagm for companies and recruiters — jobs, candidates and team in one place', c.hero.body ?? '');
+  usePageMeta('/companies');
 
   return (
     <Shell>

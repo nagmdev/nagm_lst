@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from '../i18n/links';
 import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
 import { Shell, Section, SectionHead, Lines, Eyebrow, FeatureCard, CtaBand, usePageMeta, links } from '../design/ui';
@@ -9,7 +9,7 @@ export default function AboutPage() {
   const t = useSiteText();
   const lang = useLang();
   const a = t.about;
-  usePageMeta(lang === 'ar' ? 'عن نجم — رسالتنا وقصتنا' : 'About Nagm — our mission and story', a.hero.body ?? '');
+  usePageMeta('/about');
 
   return (
     <Shell>

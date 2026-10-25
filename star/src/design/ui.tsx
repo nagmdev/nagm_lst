@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink } from '../i18n/links';
 import { APP_ORIGIN } from '../auth';
-import { useLang, setLang, applyLangToDocument } from '../i18n/lang';
+import { useLang, setLang, applyLangToDocument, pageFromPath, pagePath, type Lang, type PagePath } from '../i18n/lang';
+import { headTags, pageCopy } from '../seo/site';
+import { useClientValue } from '../utils/useClientValue';
 import { useSiteText, type Card, type Section as SectionCopy } from '../i18n/siteText';
 import { Icon, Arrow, type IconName } from './icons';
 import { ChevronField } from './art';
 import { ScaleBox, MatchCard, CandidateCard, PipelineBoard } from './mock';
+import { SocialLinks } from './social';
 
 /**
  * Site chrome and section primitives for nagm.io. Pages compose these with
@@ -17,25 +21,23 @@ import { ScaleBox, MatchCard, CandidateCard, PipelineBoard } from './mock';
 /* ------------------------------------------------------------------ */
 /* document                                                            */
 
-export function usePageMeta(title: string, description: string) {
+/** Title, description, canonical, alternates, share card and structured data for `page`. */
+export function usePageMeta(page: PagePath) {
   const lang = useLang();
   useEffect(() => {
-    document.title = title;
-    const set = (sel: string, attr: string, value: string) => {
-      let el = document.head.querySelector<HTMLMetaElement>(sel);
-      if (!el) {
-        el = document.createElement('meta');
-        const [k, v] = sel.replace(/^meta\[|\]$/g, '').split('=');
-        el.setAttribute(k, v.replace(/"/g, ''));
-        document.head.appendChild(el);
-      }
-      el.setAttribute(attr, value);
-    };
-    set('meta[name="description"]', 'content', description);
-    set('meta[property="og:title"]', 'content', title);
-    set('meta[property="og:description"]', 'content', description);
-    set('meta[property="og:locale"]', 'content', lang === 'ar' ? 'ar_EG' : 'en_US');
-  }, [title, description, lang]);
+    document.title = pageCopy(page, lang).title;
+    // The pre-rendered page already carries these; replace them so a page
+    // reached by navigation describes itself, not the one before it.
+    document.head.querySelectorAll('[data-seo]').forEach((el) => el.remove());
+    document.head.querySelectorAll('meta[name="description"]').forEach((el) => el.remove());
+    for (const { tag, attrs, text } of headTags(page, lang)) {
+      const el = document.createElement(tag);
+      el.setAttribute('data-seo', '');
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      if (text) el.textContent = text;
+      document.head.appendChild(el);
+    }
+  }, [page, lang]);
 }
 
 const THEME_KEY = 'nagm_theme';
@@ -50,12 +52,28 @@ function readTheme(): boolean {
 }
 
 function useTheme() {
-  const [dark, setDark] = useState<boolean>(() => (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) || readTheme());
+  // index.html puts the saved theme on <html> before first paint; this only
+  // mirrors it, so a pre-rendered page hydrates without a mismatch.
+  const saved = useClientValue(() => document.documentElement.classList.contains('dark') || readTheme(), false);
+  const [picked, setPicked] = useState<boolean | null>(null);
+  const dark = picked ?? saved;
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark);
-    try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); } catch { /* ignore */ }
-  }, [dark]);
-  return { dark, toggle: () => setDark((d) => !d) };
+    if (picked === null) return;
+    document.documentElement.classList.toggle('dark', picked);
+    try { localStorage.setItem(THEME_KEY, picked ? 'dark' : 'light'); } catch { /* ignore */ }
+  }, [picked]);
+  return { dark, toggle: () => setPicked(!dark) };
+}
+
+/** Switch language: on a page that has both, go to the other language's address. */
+export function useSwitchLang() {
+  const navigate = useNavigate();
+  const { pathname, search, hash } = useLocation();
+  return (to: Lang) => {
+    setLang(to);
+    const page = pageFromPath(pathname);
+    if (page && page.lang !== to) navigate(`${pagePath(page.page, to)}${search}${hash}`);
+  };
 }
 
 /** Scroll to the hash target after a route change (menus deep-link to sections). */
@@ -180,6 +198,7 @@ export function Nav() {
   const t = useSiteText();
   const lang = useLang();
   const { dark, toggle } = useTheme();
+  const switchLang = useSwitchLang();
   const [drawer, setDrawer] = useState(false);
   const [menu, setMenu] = useState<MenuKey | null>(null);
   const closeTimer = useRef<number | null>(null);
@@ -231,8 +250,9 @@ export function Nav() {
           <NavLink className={({ isActive }) => `ns-nav-link${isActive ? ' is-active' : ''}`} to="/about">{t.nav.about}</NavLink>
         </nav>
         <div className="ns-nav-actions">
-          <button type="button" className="ns-langbtn" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} aria-label={t.nav.lang} title={t.nav.lang}>
-            {lang === 'ar' ? 'EN' : 'عربي'}
+          {/* The accessible name starts with the visible text, so voice control ("click EN") finds it. */}
+          <button type="button" className="ns-langbtn" onClick={() => switchLang(lang === 'ar' ? 'en' : 'ar')} aria-label={`${lang === 'ar' ? 'EN' : 'عربي'} — ${t.nav.lang}`} title={t.nav.lang}>
+            <span lang={lang === 'ar' ? 'en' : 'ar'}>{lang === 'ar' ? 'EN' : 'عربي'}</span>
           </button>
           <button type="button" className="ns-iconbtn" onClick={toggle} aria-label={t.nav.theme} title={t.nav.theme} aria-pressed={dark}>
             <Icon name={dark ? 'sun' : 'moon'} size={18} />
@@ -292,6 +312,7 @@ export function Nav() {
 export function Footer() {
   const t = useSiteText();
   const lang = useLang();
+  const switchLang = useSwitchLang();
   return (
     <footer className="ns-footer">
       <div className="ns-container">
@@ -302,13 +323,14 @@ export function Footer() {
               {t.footer.tagline[0]}<br />{t.footer.tagline[1]}
             </p>
             <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-              <button type="button" className="ns-market-pill" aria-pressed={lang === 'ar'} onClick={() => setLang('ar')}>عربي</button>
-              <button type="button" className="ns-market-pill" aria-pressed={lang === 'en'} onClick={() => setLang('en')}>English</button>
+              <button type="button" className="ns-market-pill" aria-pressed={lang === 'ar'} onClick={() => switchLang('ar')} lang="ar">عربي</button>
+              <button type="button" className="ns-market-pill" aria-pressed={lang === 'en'} onClick={() => switchLang('en')} lang="en">English</button>
             </div>
+            <SocialLinks lang={lang} />
           </div>
           {t.footer.cols.map((c) => (
             <div key={c.head}>
-              <h4>{c.head}</h4>
+              <h2 className="ns-footer-head">{c.head}</h2>
               <ul>
                 {c.links.map((l) => (
                   <li key={l.label}>
