@@ -126,47 +126,20 @@ export function forgetPendingSignIn(): void {
  *  and only becomes HR when an admin approves it. */
 export type AccountRole = 'candidate' | 'recruiter' | 'company';
 
-export interface CompanyOption {
-  id: number;
-  name: string;
-  slug?: string | null;
-  verified?: boolean;
-  emailDomain?: string | null;
-}
-
+/** Sign-up asks only this; the rest of a profile is filled in later, in the app. */
 export interface RegisterPayload {
-  /** Set when the recruiter asked to join an existing company (id) at sign-up. */
-  joinCompanyId?: number;
-  /** A recruiter with no company: the API gives them a personal workspace. */
-  independent?: boolean;
+  role: AccountRole;
+  /** Full name ("Sara Mansour"); the API splits it into first and last. */
+  name: string;
   email: string;
   password: string;
-  role?: AccountRole;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  country?: string;
-  // Recruiter
-  jobTitle?: string;
-  linkedInProfile?: string;
-  // Company
+  /** A company signs up with its name. */
   companyName?: string;
-  industry?: string;
-  companySize?: string;
-  websiteUrl?: string;
 }
 
 export const authApi = {
   login: (email: string, password: string, rememberMe: boolean) =>
     api.post<Tokens>('/auth/login', { email: email.trim(), password, rememberMe }).then((r) => r.data),
-  /** Company directory for the sign-up picker ("which company do you work for?"). */
-  searchCompanies: (q: string, email?: string) =>
-    api
-      .get<{ companies: CompanyOption[]; suggestedByDomain: number[] }>('/workspace/companies', {
-        params: { q, ...(email ? { email } : {}) },
-      })
-      .then((r) => r.data)
-      .catch(() => ({ companies: [], suggestedByDomain: [] })),
   register: (payload: RegisterPayload) =>
     api
       .post<{ message: string; id: string; email: string; requestedRole?: 'recruiter' | 'company' | null; emailSent?: boolean }>(
@@ -178,11 +151,11 @@ export const authApi = {
     api.post<{ message: string }>('/auth/verify-email', { email: email.trim(), otp }).then((r) => r.data),
   resend: (email: string) => api.post('/auth/resend-verification', { email: email.trim() }).then((r) => r.data),
   requestPasswordReset: (email: string) =>
-    api.post<{ message: string }>('/auth/request-password-reset', { email: email.trim() }).then((r) => r.data),
+    api.post<{ message: string }>('/auth/password/forgot', { email: email.trim() }).then((r) => r.data),
   verifyPasswordResetOtp: (email: string, otp: string) =>
-    api.post<{ message: string }>('/auth/verify-password-reset-otp', { email: email.trim(), otp }).then((r) => r.data),
+    api.post<{ message: string }>('/auth/password/verify-otp', { email: email.trim(), otp }).then((r) => r.data),
   resetPasswordWithOtp: (email: string, otp: string, newPassword: string) =>
-    api.post<{ message: string }>('/auth/reset-password-with-otp', { email: email.trim(), otp, newPassword }).then((r) => r.data),
+    api.post<{ message: string }>('/auth/password/reset', { email: email.trim(), otp, newPassword }).then((r) => r.data),
 };
 
 export function apiError(err: unknown, fallback = 'Something went wrong. Please try again.'): string {

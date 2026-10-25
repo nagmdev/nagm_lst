@@ -37,12 +37,15 @@ const Verify: React.FC = () => {
     );
   }
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    void verify(otp.trim());
+  };
+
+  const verify = async (code: string) => {
     if (busy) return; // Enter pressed again while the first request is in flight
     setErr('');
     setMsg('');
-    const code = otp.trim();
     // The server only accepts exactly 6 digits; say so without a round trip.
     if (!/^\d{6}$/.test(code)) {
       setErr(t.enterCode);
@@ -121,7 +124,12 @@ const Verify: React.FC = () => {
             required
             value={otp}
             // Digits only — pasting "123 456" or a code with a stray letter still works.
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onChange={(e) => {
+              const code = e.target.value.replace(/\D/g, '').slice(0, 6);
+              setOtp(code);
+              // The sixth digit (typed or pasted) is the go: no extra click.
+              if (code.length === 6 && code !== otp) void verify(code);
+            }}
             placeholder="123456"
             aria-invalid={!!err || undefined}
             aria-describedby={err ? 'verify-error' : undefined}

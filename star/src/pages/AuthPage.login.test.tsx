@@ -10,7 +10,7 @@ vi.mock('../auth', async (importOriginal) => {
   return {
     ...actual,
     handoffToApp: vi.fn(),
-    authApi: { ...actual.authApi, login: vi.fn(), searchCompanies: vi.fn() },
+    authApi: { ...actual.authApi, login: vi.fn() },
   };
 });
 import { authApi, handoffToApp, appPathFor, pendingSignInFor, forgetPendingSignIn } from '../auth';
@@ -47,7 +47,6 @@ beforeEach(() => {
   forgetPendingSignIn();
   probe = null;
   api.login.mockResolvedValue({ accessToken: 'a', refreshToken: 'r', role: 'user' });
-  api.searchCompanies.mockResolvedValue({ companies: [], suggestedByDomain: [] });
 });
 
 describe('signing in', () => {

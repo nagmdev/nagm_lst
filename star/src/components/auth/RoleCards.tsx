@@ -8,10 +8,9 @@ interface Props {
   onSelect: (role: AccountRole) => void;
 }
 
-// Three ways in. "Company" registers the organisation itself — that person
-// becomes its Company Manager; "Recruiter" is a person who joins an existing
-// company, creates one, or works independently. Either way the company record
-// is de-duplicated by slug/domain, so there is never a second "Sama Group".
+// Three ways in: a job seeker; a recruiter working on their own (a personal
+// workspace); or a company, which registers the organisation and is verified
+// before it hires. A recruiter on a company's team signs up from its invitation.
 const ROLES: { key: AccountRole; Icon: typeof User }[] = [
   { key: 'candidate', Icon: User },
   { key: 'recruiter', Icon: Briefcase },
@@ -21,9 +20,6 @@ const ROLES: { key: AccountRole; Icon: typeof User }[] = [
 /**
  * Account-type picker shown on sign-up. Implemented as a radio group so it is
  * keyboard- and screen-reader-navigable (arrow keys move between options).
- *
- * NOTE: choosing "Recruiter"/"Company" only *requests* that access — the account
- * is created as a normal user until an admin approves it.
  */
 const RoleCards: React.FC<Props> = ({ selected, onSelect }) => {
   const t = useAuthText();
