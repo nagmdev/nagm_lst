@@ -1,15 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, Globe, Search, User } from '../design/glyphs';
+import { Building2, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, User } from '../design/glyphs';
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
-import SelectDropdown from '../components/auth/SelectDropdown';
 import { authApi, handoffToApp, apiError, rememberPendingSignIn, planReturnTo } from '../auth';
 import { useBfcacheReset } from '../utils/useBfcacheReset';
 import { signInPasswordIssue } from '../utils/signInPassword';
-import type { AccountRole, RegisterPayload, CompanyOption } from '../auth';
-import { emailError, emailSuggestion, phoneError, phoneExample, normalizePhone, COUNTRY_NAMES_AR } from '../utils/contact';
-import { linkIssue } from '../utils/links';
+import type { AccountRole, RegisterPayload } from '../auth';
+import { emailError, emailSuggestion } from '../utils/contact';
 import { useAuthText, localizeServerMessage } from '../i18n/authText';
 
 type AuthText = ReturnType<typeof useAuthText>;
@@ -17,46 +15,13 @@ type AuthText = ReturnType<typeof useAuthText>;
 type AuthMode = 'signup' | 'login';
 
 
-const COUNTRY_CODES: Record<string, string> = {
-  'Egypt': '(+20)', 'Saudi Arabia': '(+966)', 'United Arab Emirates': '(+971)',
-};
-
-const COUNTRY_OPTIONS = ['Egypt', 'Saudi Arabia', 'United Arab Emirates'];
-const DEFAULT_COUNTRY = 'Egypt';
-
-// Max mobile-number digits per country — the phone input is capped to this as
-// it's typed (e.g. Egypt = 11 digits).
-const COUNTRY_PHONE_MAX: Record<string, number> = {
-  Egypt: 11, 'Saudi Arabia': 9, 'United Arab Emirates': 9,
-};
-
-// Recruiter job titles — a scrollable dropdown, with "Other" revealing a
-// free-text "please specify" field.
-const JOB_TITLES = [
-  'Recruiter', 'Senior Recruiter', 'Technical Recruiter', 'Lead Recruiter',
-  'Recruitment Coordinator', 'Talent Sourcer', 'Talent Acquisition Specialist',
-  'Talent Acquisition Partner', 'Talent Acquisition Manager', 'HR Specialist',
-  'HR Generalist', 'HR Manager', 'HR Business Partner', 'Hiring Manager',
-  'Head of Talent Acquisition', 'HR Director', 'Other',
-];
-
-// Arabic labels for the job-title list. The English title is still what gets
-// stored, so recruiters' titles stay searchable whatever language they used.
-const JOB_TITLES_AR: Record<string, string> = {
-  Recruiter: 'مسؤول توظيف', 'Senior Recruiter': 'مسؤول توظيف أول', 'Technical Recruiter': 'مسؤول توظيف تقني',
-  'Lead Recruiter': 'قائد فريق التوظيف', 'Recruitment Coordinator': 'منسّق توظيف', 'Talent Sourcer': 'باحث عن الكفاءات',
-  'Talent Acquisition Specialist': 'أخصائي استقطاب مواهب', 'Talent Acquisition Partner': 'شريك استقطاب مواهب',
-  'Talent Acquisition Manager': 'مدير استقطاب مواهب', 'HR Specialist': 'أخصائي موارد بشرية',
-  'HR Generalist': 'أخصائي موارد بشرية عام', 'HR Manager': 'مدير موارد بشرية', 'HR Business Partner': 'شريك أعمال الموارد البشرية',
-  'Hiring Manager': 'مدير التوظيف', 'Head of Talent Acquisition': 'رئيس استقطاب المواهب', 'HR Director': 'مدير إدارة الموارد البشرية',
-  Other: 'أخرى',
-};
+// Free mailbox providers: a company signs up with its own domain (the API
+// refuses these too, but only after the whole form has been sent).
+const FREE_EMAIL_DOMAINS = new Set(['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com']);
 
 // Same limits the API enforces (backend/src/middlewares/validation.ts), so the
 // form stops a too-long value before the server has to.
-const MAX_LEN: Record<string, number> = {
-  firstName: 80, lastName: 80, companyName: 160, jobTitleOther: 120,
-};
+const MAX_LEN: Record<string, number> = { name: 160, companyName: 160 };
 const PASSWORD_MAX = 128;
 
 /** Mirrors the backend policy: 8–128 chars and at least 3 of the 4 character classes. */
@@ -73,11 +38,13 @@ function passwordIssue(pw: string, t: AuthText): string {
 const LTR_TYPES = new Set(['email', 'tel', 'url', 'password']);
 
 /**
- * nagm.io's unified sign-up / sign-in page with three account types.
+ * nagm.io's sign-up / sign-in page.
  *
- * Signing in hands the session off to app.nagm.io. Choosing "Recruiter" or
- * "Company" only *requests* that access — the account is created as a normal
- * user until a Nagm admin approves it.
+ * Sign-up is one short form for everyone: who you are (job seeker, recruiter
+ * working on their own, or a company), your name, email and a password — plus
+ * the company's name for a company. Everything else is asked later, in the app.
+ * A recruiter joining a company's team signs up from the invitation link.
+ * Signing in hands the session off to app.nagm.io.
  */
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -126,19 +93,6 @@ const AuthPage: React.FC = () => {
   const [animatingErrors, setAnimatingErrors] = useState(false);
   const flashErrors = () => { setAnimatingErrors(true); setTimeout(() => setAnimatingErrors(false), 550); };
   const [remember, setRemember] = useState(true);
-  // A recruiter joins an existing company (its admin approves them) or works
-  // independently: a one-person personal workspace on a recruiter plan, whose
-  // jobs Nagm reviews and which never carries the Verified badge (owner
-  // decision 2026-10-18, reversing 2026-10-15).
-  // A recruiter plan picked on the pricing page is a plan for an independent
-  // recruiter: start on that path (joining a company never uses it).
-  const [companyMode, setCompanyMode] = useState<'join' | 'independent'>(
-    () => (/^RECRUITER_/.test(new URLSearchParams(location.search).get('plan') || '') ? 'independent' : 'join'),
-  );
-  const [companyQuery, setCompanyQuery] = useState('');
-  const [companyResults, setCompanyResults] = useState<CompanyOption[]>([]);
-  const [pickedCompany, setPickedCompany] = useState<CompanyOption | null>(null);
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const [showPwd, setShowPwd] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -148,7 +102,6 @@ const AuthPage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotOtp, setForgotOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotErr, setForgotErr] = useState('');
   const [forgotBusy, setForgotBusy] = useState(false);
@@ -169,48 +122,22 @@ const AuthPage: React.FC = () => {
   // else the plan chosen on the pricing page: its billing page, on that plan.
   const returnTo = queryParams.get('returnTo') || planReturnTo(queryParams);
 
-  const [values, setValues] = useState<Record<string, string>>({
-    firstName: '', lastName: '',
-    email: queryEmail,
-    companyEmail: queryEmail,
-    businessEmail: queryEmail,
-    phone: '', password: '', confirmPassword: '', country: DEFAULT_COUNTRY,
-    jobTitle: '', jobTitleOther: '', linkedInProfile: '', companyName: '', industry: '', companySize: '',
-    websiteUrl: '',
-  });
+  // Opened from a company invitation: the account joins that company's team,
+  // so there is no type to choose and the invited address is the one to use.
+  const invited = /\/invite\//.test(returnTo || '') && Boolean(queryEmail);
+
+  const [values, setValues] = useState<Record<string, string>>({ name: '', email: queryEmail, companyName: '', password: '' });
 
   // Pre-fill email and role if supplied via query params (e.g. from invite link)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const emailParam = params.get('email');
     const roleParam = params.get('role') as AccountRole | null;
-    if (emailParam) {
-      setValues((v) => ({
-        ...v,
-        email: v.email || emailParam,
-        companyEmail: v.companyEmail || emailParam,
-        businessEmail: v.businessEmail || emailParam,
-      }));
-    }
+    if (emailParam) setValues((v) => ({ ...v, email: v.email || emailParam }));
     if (roleParam && ['candidate', 'recruiter', 'company'].includes(roleParam)) {
       setRole((r) => (r === 'candidate' ? roleParam : r));
     }
   }, [location.search]);
-
-  // Debounced company lookup. The work email is sent too so a matching domain
-  // surfaces the right company first ("sara@microsoft.com" -> Microsoft).
-  useEffect(() => {
-    if (role !== 'recruiter' || companyMode !== 'join' || pickedCompany) { setCompanyResults([]); return; }
-    const q = companyQuery.trim();
-    const email = values.companyEmail.trim();
-    if (q.length < 2 && !email.includes('@')) { setCompanyResults([]); return; }
-    let alive = true;
-    const t = setTimeout(async () => {
-      const r = await authApi.searchCompanies(q, email);
-      if (alive) setCompanyResults(r.companies);
-    }, 280);
-    return () => { alive = false; clearTimeout(t); };
-  }, [companyQuery, values.companyEmail, role, companyMode, pickedCompany]);
 
   const switchMode = useCallback((mode: AuthMode) => {
     if (mode === authMode || transitioning) return;
@@ -241,35 +168,20 @@ const AuthPage: React.FC = () => {
     const tooLong = (label: string) => (MAX_LEN[name] && v.length > MAX_LEN[name] ? t.tooLong(label, MAX_LEN[name]) : '');
     let err = '';
     switch (name) {
-      case 'firstName': err = v ? tooLong(t.firstName) : t.firstNameRequired; break;
-      case 'lastName': err = v ? tooLong(t.lastName) : t.lastNameRequired; break;
+      case 'name': err = v ? tooLong(t.fullName) : t.fullNameRequired; break;
       case 'companyName': err = v ? tooLong(t.companyName) : t.companyNameRequired; break;
-      case 'jobTitle': err = v ? '' : t.jobTitleRequired; break;
-      case 'jobTitleOther': err = values.jobTitle === 'Other' && !v ? t.jobTitleOtherRequired : tooLong(t.jobTitle); break;
-      // The join picker isn't a text field — validate the selection itself.
-      case 'company': err = companyMode === 'join' && !pickedCompany ? t.chooseCompany : ''; break;
-      case 'email': err = emailError(v, true, t.lang); break;
-      // A recruiter's email may be a company address OR a personal one — a new
-      // company often has no domain email yet, and freelance recruiters use a
-      // personal address. So we only check the address is valid, not its domain.
-      case 'companyEmail':
-      case 'businessEmail':
+      case 'email':
         err = emailError(v, true, t.lang);
+        // A company signs up with its own domain, which the API insists on too.
+        if (!err && authMode === 'signup' && role === 'company' && !invited && FREE_EMAIL_DOMAINS.has(v.split('@')[1]?.toLowerCase() || '')) {
+          err = t.useWorkEmail;
+        }
         break;
-      // Phone is optional, but a number that IS typed must be one the server
-      // accepts. It used to pass here unchecked ("123") and come back as a
-      // server error after the whole form had been submitted.
-      case 'phone': err = phoneError(v, values.country, false, t.lang); break;
-      case 'linkedInProfile': err = linkIssue('linkedin', v) ? t.invalidLinkedIn : ''; break;
-      case 'websiteUrl': err = linkIssue('website', v) ? t.invalidWebsite : ''; break;
       // Signing in checks an EXISTING password, which only the server can judge;
       // the full policy belongs where a password is being chosen. See
       // utils/signInPassword for how the old behaviour locked people out.
       case 'password':
         err = authMode === 'login' ? signInPasswordIssue(values.password, t) : passwordIssue(values.password, t);
-        break;
-      case 'confirmPassword':
-        err = !v ? t.confirmRequired : v !== values.password ? t.passwordsDontMatch : '';
         break;
     }
     setErrors((p) => ({ ...p, [name]: err }));
@@ -283,17 +195,8 @@ const AuthPage: React.FC = () => {
   }, [t.lang]);
 
   const handleChange = (name: string, value: string) => {
-    // Cap the phone number to the selected country's digit count, digits only.
-    if (name === 'phone') {
-      const max = COUNTRY_PHONE_MAX[values.country] ?? 15;
-      value = value.replace(/\D/g, '').slice(0, max);
-    }
     setValues((p) => ({ ...p, [name]: value }));
     if (touched[name]) validateField(name, value);
-    // The phone rule depends on the country: re-check a typed number when it changes.
-    if (name === 'country' && touched.phone) {
-      setErrors((p) => ({ ...p, phone: phoneError(values.phone, value, false, t.lang) }));
-    }
   };
   const handleBlur = (name: string) => {
     setTouched((p) => ({ ...p, [name]: true }));
@@ -301,20 +204,7 @@ const AuthPage: React.FC = () => {
   };
 
   // In on-screen order, so the first failing one is the first the user sees.
-  const signupFields = (): string[] => {
-    switch (role) {
-      case 'candidate': return ['firstName', 'lastName', 'email', 'phone', 'password', 'confirmPassword'];
-      case 'recruiter': return [
-        'firstName', 'lastName', 'companyEmail',
-        // Joining names a company; an independent recruiter has none to check.
-        ...(companyMode === 'join' ? ['company'] : []),
-        'phone', 'jobTitle',
-        ...(values.jobTitle === 'Other' ? ['jobTitleOther'] : []),
-        'linkedInProfile', 'password', 'confirmPassword',
-      ];
-      case 'company': return ['companyName', 'firstName', 'lastName', 'businessEmail', 'phone', 'password', 'confirmPassword'];
-    }
-  };
+  const signupFields = (): string[] => [...(role === 'company' && !invited ? ['companyName'] : []), 'name', 'email', 'password'];
 
   /** Focus a field of THIS form on the next frame; a no-op once the form is gone. */
   const focusInForm = (id: string) =>
@@ -323,13 +213,7 @@ const AuthPage: React.FC = () => {
   /** Move focus to the first invalid field so keyboard and screen-reader users land on the problem. */
   const focusFirstInvalid = (fields: string[], errs: Record<string, string>) => {
     const first = fields.find((f) => errs[f]);
-    const id = first === 'company' ? 'company-search-input' : first === 'jobTitle' ? null : first;
-    requestAnimationFrame(() => {
-      const el = id
-        ? formRef.current?.querySelector<HTMLElement>(`#${id}`)
-        : formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
-      el?.focus();
-    });
+    if (first) focusInForm(first);
   };
 
   const isValid = (): boolean => {
@@ -343,14 +227,8 @@ const AuthPage: React.FC = () => {
     });
     const fieldsOk = fields.every((f) => !errs[f]);
     if (!fieldsOk) focusFirstInvalid(fields, errs);
-    else if (authMode === 'signup' && !acceptTerms) focusInForm('accept-terms');
-    return fieldsOk && (authMode !== 'signup' || acceptTerms);
+    return fieldsOk;
   };
-
-  const emailForRole = () =>
-    role === 'candidate' ? values.email.trim()
-      : role === 'recruiter' ? values.companyEmail.trim()
-        : values.businessEmail.trim();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -358,44 +236,16 @@ const AuthPage: React.FC = () => {
     if (busy) return;
     setError(''); setSuccessMsg('');
     if (!isValid()) {
-      if (authMode === 'signup' && !acceptTerms) setError(t.acceptTerms);
       flashErrors();
       return;
     }
     setBusy(true);
 
     if (authMode === 'signup') {
-      const email = emailForRole();
-      const payload: RegisterPayload = { role, email, password: values.password, country: values.country };
-      if (role === 'candidate') {
-        payload.firstName = values.firstName.trim();
-        payload.lastName = values.lastName.trim();
-        if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
-      } else if (role === 'recruiter') {
-        payload.firstName = values.firstName.trim();
-        payload.lastName = values.lastName.trim();
-        if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
-        payload.jobTitle = (values.jobTitle === 'Other' ? values.jobTitleOther : values.jobTitle).trim();
-        payload.linkedInProfile = values.linkedInProfile.trim();
-        // Joining sends the chosen company's id — a request its admin
-        // approves. Independent sends `independent: true` and gets a personal
-        // workspace. A NEW company registers through company sign-up, which
-        // Nagm verifies (KYB) first.
-        if (companyMode === 'join' && pickedCompany) {
-          payload.joinCompanyId = pickedCompany.id;
-          payload.companyName = pickedCompany.name;
-        } else if (companyMode === 'independent') {
-          payload.independent = true;
-        }
-      } else {
-        payload.companyName = values.companyName.trim();
-        if (values.firstName.trim()) payload.firstName = values.firstName.trim();
-        if (values.lastName.trim()) payload.lastName = values.lastName.trim();
-        if (values.phone.trim()) payload.phone = normalizePhone(values.phone, values.country);
-        payload.industry = values.industry;
-        payload.companySize = values.companySize;
-        if (values.websiteUrl.trim()) payload.websiteUrl = values.websiteUrl.trim();
-      }
+      const email = values.email.trim();
+      // An invited teammate joins the company that invited them.
+      const payload: RegisterPayload = { role: invited ? 'recruiter' : role, email, password: values.password, name: values.name.trim() };
+      if (role === 'company' && !invited) payload.companyName = values.companyName.trim();
       try {
         const created = await authApi.register(payload);
         // Registration sends an OTP; verify it, then we auto-sign-in and hand off.
@@ -431,7 +281,6 @@ const AuthPage: React.FC = () => {
           setForgotEmail(email);
           setForgotOtp('');
           setNewPassword('');
-          setConfirmNewPassword('');
           setForgotErr('');
           setForgotMsg(t.guestFinishAccount(email));
           setResendCooldown(60);
@@ -493,7 +342,7 @@ const AuthPage: React.FC = () => {
   const field = (
     name: string,
     label: string,
-    opts?: { type?: string; placeholder?: string; required?: boolean; autoComplete?: string; icon?: React.ReactNode; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'] },
+    opts?: { type?: string; placeholder?: string; required?: boolean; autoComplete?: string; icon?: React.ReactNode; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; readOnly?: boolean },
   ) => {
     const type = opts?.type || 'text';
     const suggestion = type === 'email' && !errors[name] ? emailSuggestion(values[name] || '') : null;
@@ -517,6 +366,7 @@ const AuthPage: React.FC = () => {
             placeholder={opts?.placeholder}
             autoComplete={opts?.autoComplete}
             inputMode={opts?.inputMode}
+            readOnly={opts?.readOnly}
             // Emails, phones and links read left-to-right even on the Arabic
             // page; names follow whatever script was typed.
             dir={LTR_TYPES.has(type) ? 'ltr' : 'auto'}
@@ -589,231 +439,44 @@ const AuthPage: React.FC = () => {
           {showPwd[name] ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
         </button>
       </div>
-      {errorText(name)}
+      {errorText(name) ?? (authMode === 'signup' && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>{t.passwordHint}</div>)}
     </div>
   );
 
-  const countrySelect = () => (
-    <div style={{ marginBottom: 16 }}>
-      <SelectDropdown
-        value={values.country || DEFAULT_COUNTRY}
-        onChange={(v) => handleChange('country', v)}
-        options={COUNTRY_OPTIONS.map((c) => ({
-          value: c,
-          label: `${t.isAr ? COUNTRY_NAMES_AR[c] || c : c} ${COUNTRY_CODES[c] || ''}`,
-        }))}
-        label={t.country}
-        required
-      />
-    </div>
+  // Agreeing is what creating the account means; the server records when.
+  const consent = () => (
+    <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '0 0 14px', lineHeight: 1.55 }}>
+      {t.consentPrefix}<span style={{ color: 'var(--ink2)', fontWeight: 600 }}>{t.terms}</span>{t.termsAnd}<span style={{ color: 'var(--ink2)', fontWeight: 600 }}>{t.privacy}</span>{t.consentSuffix}
+    </p>
   );
 
-  // Country and phone sit side by side — the country's dial code frames the number.
-  const countryPhoneRow = () => (
-    <div className="ng-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
-      {countrySelect()}
-      {field('phone', t.phone, { type: 'tel', placeholder: phoneExample(values.country), required: false, autoComplete: 'tel', inputMode: 'tel' })}
-    </div>
-  );
-
-  const termsInvalid = !acceptTerms && error === t.acceptTerms;
-  const terms = () => (
-    <label className="ng-check" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', marginBottom: 16 }}>
-      <span style={{ position: 'relative', width: 18, height: 18, flexShrink: 0 }}>
-        <input
-          id="accept-terms"
-          type="checkbox" checked={acceptTerms}
-          onChange={(e) => { setAcceptTerms(e.target.checked); if (e.target.checked && error === t.acceptTerms) setError(''); }}
-          aria-invalid={termsInvalid || undefined}
-          aria-describedby={termsInvalid ? 'form-error' : undefined}
-          style={{ position: 'absolute', inset: 0, margin: 0, opacity: 0, cursor: 'pointer', zIndex: 1 }}
-        />
-        <span aria-hidden="true" style={{
-          position: 'absolute', inset: 0, borderRadius: 5,
-          border: `2px solid ${acceptTerms ? 'var(--brand)' : termsInvalid ? 'var(--danger)' : 'var(--line)'}`,
-          background: acceptTerms ? 'var(--brand)' : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s',
-        }}>
-          {acceptTerms && (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-        </span>
-      </span>
-      <span>
-        {t.termsPrefix}<span style={{ color: 'var(--brand)', fontWeight: 600 }}>{t.terms}</span>{t.termsAnd}<span style={{ color: 'var(--brand)', fontWeight: 600 }}>{t.privacy}</span>
-      </span>
-    </label>
-  );
-
-  const approvalNote = () => (
+  const note = (text: string) => (
     <div style={{
       display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 10,
       background: 'var(--brandSoft)', border: '1px solid var(--brandBorder)', marginBottom: 16,
       fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.45,
     }}>
       <Check size={15} aria-hidden="true" style={{ color: 'var(--brand)', flexShrink: 0, marginTop: 1 }} />
-      {/* A company is reviewed before it can hire: KYB documents go to Nagm and
-          the company exists once an admin approves them. A recruiter needs no
-          approval of their own; they join a company. */}
-      <span>{role === 'company' ? t.approvalCompany : t.approvalRecruiter}</span>
+      <span>{text}</span>
     </div>
   );
 
-  const candidateForm = () => (
-    <>
-      <div className="ng-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {field('firstName', t.firstName, { autoComplete: 'given-name', placeholder: t.isAr ? 'سارة' : 'Sara' })}
-        {field('lastName', t.lastName, { autoComplete: 'family-name', placeholder: t.isAr ? 'منصور' : 'Mansour' })}
-      </div>
-      {field('email', t.email, { type: 'email', placeholder: 'you@example.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {countryPhoneRow()}
-      {passwordField('password', t.password, 'new-password')}
-      {passwordField('confirmPassword', t.confirmPassword, 'new-password')}
-      {terms()}
-    </>
-  );
-
-  const companyModes = [
-    ['join', t.joinExisting, Building2],
-    ['independent', t.independent, User],
-  ] as const;
-
-  const recruiterForm = () => (
-    <>
-      {approvalNote()}
-      <div className="ng-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {field('firstName', t.firstName, { autoComplete: 'given-name' })}
-        {field('lastName', t.lastName, { autoComplete: 'family-name' })}
-      </div>
-      {field('companyEmail', t.email, { type: 'email', placeholder: 'you@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-
-      {/* A recruiter joins an existing company (its admin approves them) or
-          works independently in a personal workspace. A new company registers
-          as a company and is verified first. */}
-      <div style={{ marginBottom: 16 }}>
-        <div id="company-mode-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
-          {t.yourCompany}
-        </div>
-        <div role="radiogroup" aria-labelledby="company-mode-label" className="ng-company-modes" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-          {companyModes.map(([val, label, Icon]) => {
-            const active = companyMode === val;
-            return (
-              <button
-                key={val}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => { setCompanyMode(val); setErrors((p) => ({ ...p, company: '' })); }}
-                className="ng-role-tab"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderRadius: 12,
-                  border: `1.5px solid ${active ? 'var(--brand)' : 'var(--line)'}`,
-                  background: active ? 'var(--brandSoft)' : 'var(--panel)',
-                  color: active ? 'var(--brandInk)' : 'var(--ink2)',
-                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', minWidth: 0,
-                  transition: 'border-color .15s, background .15s, color .15s',
-                }}
-              >
-                <Icon size={15} aria-hidden="true" style={{ flexShrink: 0 }} /> <span style={{ minWidth: 0 }}>{label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {companyMode === 'join' ? (
-        <>
-            <div style={{ position: 'relative' }}>
-              <Search size={15} aria-hidden="true" style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
-              <label htmlFor="company-search-input" className="sr-only">{t.searchCompanies}</label>
-              <input
-                id="company-search-input"
-                dir="auto"
-                value={companyQuery}
-                onChange={(e) => { setCompanyQuery(e.target.value); setPickedCompany(null); }}
-                placeholder={t.searchCompaniesPlaceholder}
-                aria-invalid={showErr('company') || undefined}
-                aria-describedby={showErr('company') ? errId('company') : undefined}
-                className="ng-auth-field"
-                style={inputStyle('company', { paddingBlock: 0, ...pad(38, 14) })}
-              />
-            </div>
-
-            {pickedCompany ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'var(--brandSoft)', border: '1px solid var(--brandBorder)' }}>
-                <Check size={15} aria-hidden="true" style={{ color: 'var(--brand)', flexShrink: 0 }} />
-                <bdi style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{pickedCompany.name}</bdi>
-                <button type="button" onClick={() => { setPickedCompany(null); setCompanyQuery(''); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 12.5 }}>{t.change}</button>
-              </div>
-            ) : companyResults.length > 0 ? (
-              <div className="ng-dropdown-list" style={{ marginTop: 8, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--panel)', maxHeight: 190, overflowY: 'auto' }}>
-                {companyResults.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => { setPickedCompany(c); setCompanyQuery(c.name); setErrors((p) => ({ ...p, company: '' })); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', border: 'none', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 13.5, textAlign: 'start', cursor: 'pointer' }}
-                  >
-                    <Building2 size={14} aria-hidden="true" style={{ color: 'var(--ink3)', flexShrink: 0 }} />
-                    <bdi style={{ flex: 1 }}>{c.name}</bdi>
-                    {c.verified && <Check size={13} aria-label={t.isAr ? 'موثّقة' : 'Verified'} style={{ color: 'var(--ok)' }} />}
-                  </button>
-                ))}
-              </div>
-            ) : companyQuery.trim().length > 1 ? (
-              <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '8px 0 0' }}>{t.noCompanyMatch}</p>
-            ) : null}
-
-            {pickedCompany && (
-              <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '8px 0 0' }}>{t.joinNote(pickedCompany.name)}</p>
-            )}
-            {errorText('company')}
-        </>
-        ) : (
-          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0, lineHeight: 1.6 }}>{t.independentNote}</p>
-        )}
-        <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '10px 0 0', lineHeight: 1.5 }}>
-          {t.newCompanyPrompt}{' '}
-          <button type="button" onClick={() => switchRole('company')} style={linkButton}>{t.registerCompanyLink}</button>
-        </p>
-      </div>
-      {countryPhoneRow()}
-      <div style={{ marginBottom: 16 }}>
-        <SelectDropdown
-          value={values.jobTitle}
-          onChange={(v) => { handleChange('jobTitle', v); setTouched((p) => ({ ...p, jobTitle: true })); validateField('jobTitle', v); }}
-          options={JOB_TITLES.map((j) => ({ value: j, label: t.isAr ? JOB_TITLES_AR[j] || j : j }))}
-          placeholder={t.selectJobTitle}
-          label={t.jobTitle}
-          required
-          error={errors.jobTitle}
-          touched={touched.jobTitle}
-        />
-      </div>
-      {values.jobTitle === 'Other' && field('jobTitleOther', t.jobTitleOther, { placeholder: t.isAr ? 'مثل: نائب رئيس المواهب' : 'e.g. VP of Talent', icon: <Briefcase size={15} /> })}
-      {field('linkedInProfile', t.linkedIn, { type: 'url', placeholder: 'linkedin.com/in/yourprofile', required: false, icon: <Globe size={15} /> })}
-      {passwordField('password', t.password, 'new-password')}
-      {passwordField('confirmPassword', t.confirmPassword, 'new-password')}
-      {terms()}
-    </>
-  );
-
-  const companyForm = () => (
-    <>
-      {approvalNote()}
-      {field('companyName', t.companyName, { placeholder: t.isAr ? 'مثال: شركة تاي ابس' : 'Acme Corp', icon: <Building2 size={15} /> })}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-        {field('firstName', t.isAr ? 'الاسم الأول (المسؤول)' : 'First Name (Admin)', { autoComplete: 'given-name', placeholder: t.isAr ? 'محمود' : 'John' })}
-        {field('lastName', t.isAr ? 'اسم العائلة' : 'Last Name', { autoComplete: 'family-name', placeholder: t.isAr ? 'هاشم' : 'Doe' })}
-      </div>
-      {field('businessEmail', t.businessEmail, { type: 'email', placeholder: 'hello@company.com', autoComplete: 'email', icon: <Mail size={15} /> })}
-      {countryPhoneRow()}
-      {passwordField('password', t.password, 'new-password')}
-      {passwordField('confirmPassword', t.confirmPassword, 'new-password')}
-      {terms()}
-    </>
-  );
+  // One form for everyone. A company adds its name; nothing else differs.
+  const signupForm = () => {
+    const company = role === 'company' && !invited;
+    return (
+      <>
+        {invited ? note(t.invitedNote) : company ? note(t.approvalCompany) : null}
+        {company && field('companyName', t.companyName, { placeholder: t.isAr ? 'مثال: شركة تاي ابس' : 'Acme Corp', icon: <Building2 size={15} />, autoComplete: 'organization' })}
+        {field('name', t.fullName, { autoComplete: 'name', placeholder: t.isAr ? 'سارة منصور' : 'Sara Mansour', icon: <User size={15} /> })}
+        {field('email', company ? t.businessEmail : t.email, {
+          type: 'email', placeholder: company ? 'you@company.com' : 'you@example.com', autoComplete: 'email', icon: <Mail size={15} />, readOnly: invited,
+        })}
+        {passwordField('password', t.password, 'new-password')}
+        {consent()}
+      </>
+    );
+  };
 
   const handleRequestReset = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -831,7 +494,6 @@ const AuthPage: React.FC = () => {
       await authApi.requestPasswordReset(em);
       setForgotOtp('');
       setNewPassword('');
-      setConfirmNewPassword('');
       setForgotMsg(t.resetCodeSent(em));
       setResendCooldown(60);
       setForgotMode('reset');
@@ -879,11 +541,6 @@ const AuthPage: React.FC = () => {
       focusInForm('reset-new-password');
       return;
     }
-    if (newPassword !== confirmNewPassword) {
-      setForgotErr(t.passwordsDontMatch);
-      focusInForm('reset-confirm-password');
-      return;
-    }
     try {
       setForgotBusy(true);
       await authApi.resetPasswordWithOtp(forgotEmail.trim(), cleanedOtp, newPassword);
@@ -892,7 +549,6 @@ const AuthPage: React.FC = () => {
       setValues((v) => ({ ...v, email: forgotEmail.trim(), password: '' }));
       setForgotOtp('');
       setNewPassword('');
-      setConfirmNewPassword('');
     } catch (err) {
       setForgotErr(tr(apiError(err, t.failReset)));
     } finally {
@@ -1060,26 +716,6 @@ const AuthPage: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="reset-confirm-password" style={labelStyle}>{t.confirmNewPassword}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                id="reset-confirm-password"
-                name="confirm-new-password"
-                type={showPwd['resetConfirmPassword'] ? 'text' : 'password'}
-                dir="ltr"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                autoComplete="new-password"
-                placeholder={t.confirmNewPasswordPlaceholder}
-                required
-                className="ng-auth-field"
-                style={{ ...plainInput, ...pad(14, 42), textAlign: t.isAr ? 'right' : undefined }}
-              />
-              {eyeButton('resetConfirmPassword')}
-            </div>
-          </div>
-
           {forgotErr && alertBox(forgotErr, 'forgot-error')}
           <button
             type="submit"
@@ -1105,7 +741,6 @@ const AuthPage: React.FC = () => {
           setForgotMsg('');
           setForgotOtp('');
           setNewPassword('');
-          setConfirmNewPassword('');
         }}
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 4, fontFamily: 'inherit' }}
       >
@@ -1135,7 +770,6 @@ const AuthPage: React.FC = () => {
                 setForgotMsg('');
                 setForgotOtp('');
                 setNewPassword('');
-                setConfirmNewPassword('');
                 setForgotMode('request');
               }}
               style={{ background: 'none', border: 'none', padding: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--brandInk)', textDecoration: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -1148,7 +782,6 @@ const AuthPage: React.FC = () => {
     </>
   );
 
-  const roleLabel = role === 'candidate' ? t.roleCandidate : role === 'recruiter' ? t.roleRecruiter : t.roleCompany;
   const linkButton: React.CSSProperties = { background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--brandInk)', fontWeight: 700, cursor: 'pointer' };
 
   return (
@@ -1193,12 +826,15 @@ const AuthPage: React.FC = () => {
         ))}
       </div>
 
-      {authMode === 'signup' && (
+      {authMode === 'signup' && !invited && (
         <>
           <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: t.isAr ? 0 : '.06em', color: 'var(--ink3)', margin: '4px 0 12px' }}>
             {t.chooseAccountType}
           </p>
           <RoleCards selected={role} onSelect={switchRole} />
+          {role !== 'candidate' && (
+            <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '10px 0 0', lineHeight: 1.5 }}>{t.teammateHint}</p>
+          )}
         </>
       )}
 
@@ -1220,10 +856,7 @@ const AuthPage: React.FC = () => {
             noValidate
             aria-busy={busy || undefined}
           >
-            {authMode === 'login' ? loginForm()
-              : role === 'candidate' ? candidateForm()
-                : role === 'recruiter' ? recruiterForm()
-                  : companyForm()}
+            {authMode === 'login' ? loginForm() : signupForm()}
 
             {error && (
               <div id="form-error" role="alert" style={{ fontSize: 13.5, color: 'var(--danger)', background: 'var(--dangerSoft)', padding: '10px 12px', borderRadius: 10, marginBottom: 12 }}>
@@ -1252,7 +885,7 @@ const AuthPage: React.FC = () => {
               >
                 {busy
                   ? (authMode === 'signup' ? t.creating : t.signingIn)
-                  : <>{authMode === 'signup' ? t.createAccount(roleLabel) : t.signIn} <ForwardArrow size={17} aria-hidden="true" /></>}
+                  : <>{authMode === 'signup' ? t.createAccount : t.signIn} <ForwardArrow size={17} aria-hidden="true" /></>}
               </button>
             )}
           </form>

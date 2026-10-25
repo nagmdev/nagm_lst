@@ -36,6 +36,14 @@ beforeEach(() => {
 });
 
 describe('Verify', () => {
+  it('submits by itself on the sixth digit, typed or pasted', async () => {
+    renderVerify();
+    fireEvent.change(code(), { target: { value: '48291' } });
+    expect(api.verifyEmail).not.toHaveBeenCalled();
+    fireEvent.change(code(), { target: { value: '482913' } });
+    await waitFor(() => expect(api.verifyEmail).toHaveBeenCalledWith('sara@example.com', '482913'));
+  });
+
   it('keeps only digits and at most 6 of them', () => {
     renderVerify();
     fireEvent.change(code(), { target: { value: '12 34-5a678' } });
@@ -54,8 +62,7 @@ describe('Verify', () => {
   it('verifies, signs in with the in-memory password, hands off and forgets the password', async () => {
     rememberPendingSignIn('sara@example.com', 'Str0ngPass!');
     renderVerify();
-    fireEvent.change(code(), { target: { value: '482913' } });
-    verify();
+    fireEvent.change(code(), { target: { value: '482913' } }); // the sixth digit submits
     await waitFor(() => expect(handoffToApp).toHaveBeenCalledWith({ accessToken: 'a', refreshToken: 'r' }, true, undefined));
     expect(api.verifyEmail).toHaveBeenCalledWith('sara@example.com', '482913');
     expect(api.login).toHaveBeenCalledWith('sara@example.com', 'Str0ngPass!', true);
@@ -66,19 +73,16 @@ describe('Verify', () => {
     rememberPendingSignIn('sara@example.com', 'Str0ngPass!');
     api.verifyEmail.mockRejectedValueOnce({ response: { status: 400, data: { error: 'Invalid OTP', message: 'The verification code you entered is incorrect. Please try again or request a new code.' } } });
     renderVerify();
-    fireEvent.change(code(), { target: { value: '000000' } });
-    verify();
+    fireEvent.change(code(), { target: { value: '000000' } }); // the sixth digit submits
     // The sentence, not the terse "Invalid OTP" code.
     expect(await screen.findByRole('alert')).toHaveTextContent('The verification code you entered is incorrect.');
-    fireEvent.change(code(), { target: { value: '482913' } });
-    verify();
+    fireEvent.change(code(), { target: { value: '482913' } }); // the sixth digit submits
     await waitFor(() => expect(api.login).toHaveBeenCalledWith('sara@example.com', 'Str0ngPass!', true));
   });
 
   it('sends the user to sign in when there is no password in memory (e.g. after a reload)', async () => {
     renderVerify();
-    fireEvent.change(code(), { target: { value: '482913' } });
-    verify();
+    fireEvent.change(code(), { target: { value: '482913' } }); // the sixth digit submits
     expect(await screen.findByText('login page')).toBeInTheDocument();
     expect(api.login).not.toHaveBeenCalled();
   });
@@ -106,7 +110,6 @@ describe('Verify', () => {
     renderVerify();
     expect(screen.getByText('sara@example.com').closest('bdi')).toHaveAttribute('dir', 'ltr');
     fireEvent.change(screen.getByLabelText('رمز التحقق'), { target: { value: '482913' } });
-    fireEvent.click(screen.getByRole('button', { name: 'تحقّق وتابع' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('انتهت صلاحية رمز التحقق. اطلب رمزاً جديداً.');
   });
 

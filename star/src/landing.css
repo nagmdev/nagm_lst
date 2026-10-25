@@ -503,12 +503,6 @@ html[lang="ar"] .ns-menu-head { font-family: var(--fontText); letter-spacing: 0;
    keyboard focus on the box, or tabbing onto it shows nothing at all. */
 .ng-check input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-/* Side-by-side fields (first/last name, country/phone) and the three company
-   choices don't fit a 320–400px phone, least of all with Arabic labels. */
-@media (max-width: 420px) {
-  .ng-field-pair { grid-template-columns: 1fr !important; gap: 0 !important; }
-  .ng-company-modes { grid-template-columns: 1fr !important; }
-}
 @media (hover: hover) {
   .ng-role-tab:not([aria-checked="true"]):hover { color: var(--ink); background: var(--hover); }
 }
@@ -520,10 +514,6 @@ html[lang="ar"] .ns-menu-head { font-family: var(--fontText); letter-spacing: 0;
 /* SelectDropdown open/close animation + list scrollbar */
 @keyframes ngFadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes ngFadeDown { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(6px); } }
-.ng-dropdown-list::-webkit-scrollbar { width: 4px; }
-.ng-dropdown-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
-.ng-dropdown-list::-webkit-scrollbar-track { background: transparent; }
-.ng-dropdown-list { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
 
 /* Auth form panel scrollbar — thin, rounded, brightens on hover. */
 .ng-auth-scroll::-webkit-scrollbar { width: 8px; }

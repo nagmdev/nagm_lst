@@ -13,7 +13,6 @@ vi.mock('../auth', async (importOriginal) => {
     authApi: {
       ...actual.authApi,
       login: vi.fn(),
-      searchCompanies: vi.fn(),
       requestPasswordReset: vi.fn(),
       resetPasswordWithOtp: vi.fn(),
     },
@@ -38,16 +37,14 @@ const toCodeStep = async (email = 'sara@example.com') => {
   fireEvent.click(screen.getByRole('button', { name: 'Send reset code' }));
   await screen.findByLabelText('6-digit verification code');
 };
-const fillReset = (code: string, pw: string, confirm = pw) => {
+const fillReset = (code: string, pw: string) => {
   type('6-digit verification code', code);
   type('New password', pw);
-  type('Confirm new password', confirm);
 };
 const resetBtn = () => screen.getByRole('button', { name: 'Reset password' });
 
 beforeEach(() => {
   vi.clearAllMocks();
-  api.searchCompanies.mockResolvedValue({ companies: [], suggestedByDomain: [] });
   api.requestPasswordReset.mockResolvedValue({ message: 'If the email exists, an OTP has been sent.' });
   api.resetPasswordWithOtp.mockResolvedValue({ message: 'Password reset successfully' });
 });
@@ -76,14 +73,13 @@ describe('forgot password', () => {
   });
 
   it.each([
-    ['48291', 'N3w-password!', 'N3w-password!', 'Please enter the 6-digit verification code'],
-    ['482913', 'weak', 'weak', 'Password must be at least 8 characters'],
-    ['482913', 'password1', 'password1', 'Include at least 3 of: uppercase, lowercase, number, symbol'],
-    ['482913', `${'Aa1!'.repeat(32)}x`, `${'Aa1!'.repeat(32)}x`, 'Password must be 128 characters or less'],
-    ['482913', 'N3w-password!', 'N3w-password?', 'Passwords do not match'],
-  ])('checks code %p / password %p before sending', async (code, pw, confirm, message) => {
+    ['48291', 'N3w-password!', 'Please enter the 6-digit verification code'],
+    ['482913', 'weak', 'Password must be at least 8 characters'],
+    ['482913', 'password1', 'Include at least 3 of: uppercase, lowercase, number, symbol'],
+    ['482913', `${'Aa1!'.repeat(32)}x`, 'Password must be 128 characters or less'],
+  ])('checks code %p / password %p before sending', async (code, pw, message) => {
     await toCodeStep();
-    fillReset(code, pw, confirm);
+    fillReset(code, pw);
     fireEvent.click(resetBtn());
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(api.resetPasswordWithOtp).not.toHaveBeenCalled();
@@ -137,7 +133,6 @@ describe('forgot password', () => {
     expect(screen.getByRole('heading', { name: 'إعادة تعيين كلمة المرور' })).toBeInTheDocument();
     type('رمز التحقق (6 أرقام)', '000000');
     type('كلمة المرور الجديدة', 'N3w-password!');
-    type('تأكيد كلمة المرور الجديدة', 'N3w-password!');
     fireEvent.click(screen.getByRole('button', { name: 'إعادة تعيين كلمة المرور' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('الرمز غير صحيح أو انتهت صلاحيته. تحقّق من أحدث رسالة، أو اطلب رمزاً جديداً.');
   });

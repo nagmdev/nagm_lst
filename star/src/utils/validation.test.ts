@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emailError, phoneError, normalizePhone } from './contact';
-import { linkIssue } from './links';
+import { emailError } from './contact';
 import { localizeServerMessage } from '../i18n/authText';
 
 describe('emailError — mirrors the API rule, message in the page language', () => {
@@ -28,46 +27,6 @@ describe('emailError — mirrors the API rule, message in the page language', ()
   });
 
   it('treats empty as fine when the field is optional', () => expect(emailError('', false)).toBe(''));
-});
-
-describe('phoneError — optional at sign-up, but a typed number must be real', () => {
-  it('allows an empty optional phone', () => expect(phoneError('', 'Egypt', false)).toBe(''));
-
-  it.each([['01012345678'], ['1012345678'], ['+201012345678']])('accepts the Egyptian number %p', (n) =>
-    expect(phoneError(n, 'Egypt', false)).toBe(''));
-
-  it.each([['123'], ['0100'], ['0201234567'], ['phone']])('rejects %p for Egypt', (n) =>
-    expect(phoneError(n, 'Egypt', false)).not.toBe(''));
-
-  it('uses the Saudi rule when Saudi Arabia is picked', () => {
-    expect(phoneError('0512345678', 'Saudi Arabia', false)).toBe('');
-    expect(phoneError('01012345678', 'Saudi Arabia', false)).toMatch(/Saudi Arabia/);
-  });
-
-  it('names the country in Arabic on the Arabic page', () =>
-    expect(phoneError('123', 'Egypt', false, 'ar')).toMatch(/مصر/));
-
-  it('normalises to E.164 for the API', () => {
-    expect(normalizePhone('01012345678', 'Egypt')).toBe('+201012345678');
-    expect(normalizePhone('0512345678', 'Saudi Arabia')).toBe('+966512345678');
-  });
-});
-
-describe('linkIssue — the same rules as backend/src/utils/profileLinks.ts', () => {
-  it.each([
-    ['linkedin', ''], ['linkedin', 'https://linkedin.com/in/sara'], ['linkedin', 'linkedin.com/in/sara'],
-    ['linkedin', 'https://eg.linkedin.com/in/sara'], ['website', 'acme.com'], ['website', 'https://acme.co/جوبز'],
-  ] as const)('accepts a %s link %p', (kind, value) => expect(linkIssue(kind, value)).toBe(''));
-
-  it.each([
-    ['linkedin', 'javascript:alert(1)'],
-    ['linkedin', 'https://evil.example.com/linkedin.com'],
-    ['linkedin', 'javascript:alert(1)//linkedin.com'],
-    ['website', 'javascript:alert(document.cookie)'],
-    ['website', 'data:text/html,<script>alert(1)</script>'],
-    ['website', 'localhost'],
-    ['website', 'not a url'],
-  ] as const)('rejects a %s link %p', (kind, value) => expect(linkIssue(kind, value)).toBe('invalid'));
 });
 
 describe('localizeServerMessage', () => {
