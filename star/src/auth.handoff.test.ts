@@ -1,6 +1,7 @@
 /** Feature #3 — nagm.io's half of the hand-off to app.nagm.io. Network mocked. */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { api, handoffToApp, APP_ORIGIN } from './auth';
+import { api, handoffToApp, planReturnTo, APP_ORIGIN } from './auth';
+import { setLang } from './i18n/lang';
 
 let href = '';
 let replaced = false;
@@ -20,6 +21,7 @@ const stubPage = (url: string) => {
 };
 
 beforeEach(() => {
+  setLang('ar');
   href = '';
   replaced = false;
   cookieWrites = [];
@@ -64,7 +66,26 @@ describe('handoffToApp', () => {
     expect(cookie).toContain('max-age=120');
 
     expect(post).toHaveBeenCalledWith('/auth/handoff/create', { rememberMe: true, nonce }, { headers: { Authorization: 'Bearer acc' } });
-    expect(href).toBe(`${APP_ORIGIN}/invite/tok?x=1#code=abc123`);
+    expect(href).toBe(`${APP_ORIGIN}/invite/tok?x=1#code=abc123&lang=ar`);
+  });
+
+  it('tells the app the language chosen here', async () => {
+    stubPage('https://nagm.io/login');
+    vi.spyOn(api, 'post').mockResolvedValue({ data: { code: 'abc123' } });
+    setLang('en');
+    try {
+      await handoffToApp({ accessToken: 'acc', refreshToken: 'ref' }, true, null);
+    } finally {
+      setLang('ar');
+    }
+    expect(href).toBe(`${APP_ORIGIN}/#code=abc123&lang=en`);
+  });
+
+  it('a plan picked on the pricing page lands on the app billing page for that plan', () => {
+    expect(planReturnTo(new URLSearchParams('plan=CANDIDATE_PRO&interval=YEAR'))).toBe(`${APP_ORIGIN}/billing?plan=CANDIDATE_PRO&interval=YEAR`);
+    expect(planReturnTo(new URLSearchParams('plan=COMPANY_GROWTH'))).toBe(`${APP_ORIGIN}/billing?plan=COMPANY_GROWTH&interval=MONTH`);
+    expect(planReturnTo(new URLSearchParams('plan=<script>'))).toBeNull();
+    expect(planReturnTo(new URLSearchParams('role=candidate'))).toBeNull();
   });
 
   it('uses a new nonce every time', async () => {
@@ -80,14 +101,14 @@ describe('handoffToApp', () => {
     stubPage('https://nagm.io/login');
     vi.spyOn(api, 'post').mockResolvedValue({ data: { code: 'c' } });
     await handoffToApp({ accessToken: 'a', refreshToken: 'r' }, false, 'https://evil.example.com/phish');
-    expect(href).toBe(`${APP_ORIGIN}/#code=c`);
+    expect(href).toBe(`${APP_ORIGIN}/#code=c&lang=ar`);
   });
 
   it('URL-encodes the code', async () => {
     stubPage('https://nagm.io/login');
     vi.spyOn(api, 'post').mockResolvedValue({ data: { code: 'a b&c' } });
     await handoffToApp({ accessToken: 'a', refreshToken: 'r' }, false);
-    expect(href).toBe(`${APP_ORIGIN}/#code=a%20b%26c`);
+    expect(href).toBe(`${APP_ORIGIN}/#code=a%20b%26c&lang=ar`);
   });
 
   it('keeps the cookie host-only (no domain) and not Secure when run locally over http', async () => {

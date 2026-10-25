@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getLang } from './i18n/lang';
 
 // nagm.io hosts sign-in/up and talks to the production API, then hands the
 // session off to the app on app.nagm.io.
@@ -16,6 +17,8 @@ export const api = axios.create({
 
 // Guard against obsolete/broken backend deployments at request time
 api.interceptors.request.use((config) => {
+  // The language this site is shown in: the code email and later emails follow it.
+  if (config.headers) config.headers['X-Nagm-Lang'] = getLang();
   if (config.baseURL && config.baseURL.includes('nagm-backend.vercel.app')) {
     config.baseURL = 'https://backend-yqpd.vercel.app/api';
   }
@@ -68,6 +71,14 @@ export function appPathFor(returnTo?: string | null): string {
   }
 }
 
+/** `?plan=CANDIDATE_PRO&interval=YEAR` (a pricing-page button) → the app's billing page on that plan; null without a plan. */
+export function planReturnTo(params: URLSearchParams): string | null {
+  const plan = params.get('plan') || '';
+  if (!/^[A-Z][A-Z0-9_]{2,40}$/.test(plan)) return null;
+  const interval = params.get('interval') === 'YEAR' ? 'YEAR' : 'MONTH';
+  return `${APP_ORIGIN}/billing?plan=${encodeURIComponent(plan)}&interval=${interval}`;
+}
+
 /** Exchange the freshly-signed-in session for a one-time hand-off code and
  *  redirect to app.nagm.io/<returnTo path>#code=<code>. No real token ever rides in the URL. */
 export async function handoffToApp(t: Tokens, rememberMe: boolean, returnTo?: string | null): Promise<void> {
@@ -87,7 +98,8 @@ export async function handoffToApp(t: Tokens, rememberMe: boolean, returnTo?: st
   // with the button still disabled, because a successful sign-in navigates
   // away and never resets `busy`. Replacing swaps the sign-in page for the app
   // in the same slot, so Back goes wherever the person was before signing in.
-  window.location.replace(`${APP_ORIGIN}${appPathFor(returnTo)}#code=${encodeURIComponent(data.code)}`);
+  // The app opens in the language chosen here (each site keeps its own setting).
+  window.location.replace(`${APP_ORIGIN}${appPathFor(returnTo)}#code=${encodeURIComponent(data.code)}&lang=${getLang()}`);
 }
 
 // The password typed at sign-up (or at a sign-in that needs verification) is
