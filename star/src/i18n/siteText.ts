@@ -129,7 +129,7 @@ const ar: SiteText = {
     cols: [
       { head: 'الحلول', links: [{ label: 'للباحثين عن عمل', to: '/job-seekers' }, { label: 'للشركات ومسؤولي التوظيف', to: '/companies' }, { label: 'الأسعار', to: '/pricing' }] },
       { head: 'المنصة', links: [{ label: 'الوظائف', to: '/jobs', ext: true }, { label: 'تسجيل الدخول', to: '/login' }, { label: 'إنشاء حساب', to: '/register' }] },
-      { head: 'نجم', links: [{ label: 'عن نجم', to: '/about' }, { label: 'تواصل مع المبيعات', to: 'mailto:sales@nagm.io', ext: true }, { label: 'الدعم', to: 'mailto:support@nagm.io', ext: true }] },
+      { head: 'نجم', links: [{ label: 'عن نجم', to: '/about' }, { label: 'تواصل مع المبيعات', to: 'mailto:sales@nagm.io', ext: true }, { label: 'الدعم', to: 'mailto:support@nagm.io', ext: true }, { label: 'شروط الخدمة', to: '/terms' }, { label: 'سياسة الخصوصية', to: '/privacy' }] },
     ],
   },
   home: {
@@ -549,7 +549,7 @@ const en: SiteText = {
     cols: [
       { head: 'Solutions', links: [{ label: 'For job seekers', to: '/job-seekers' }, { label: 'For companies and recruiters', to: '/companies' }, { label: 'Pricing', to: '/pricing' }] },
       { head: 'Platform', links: [{ label: 'Jobs', to: '/jobs', ext: true }, { label: 'Log in', to: '/login' }, { label: 'Create an account', to: '/register' }] },
-      { head: 'Nagm', links: [{ label: 'About', to: '/about' }, { label: 'Contact sales', to: 'mailto:sales@nagm.io', ext: true }, { label: 'Support', to: 'mailto:support@nagm.io', ext: true }] },
+      { head: 'Nagm', links: [{ label: 'About', to: '/about' }, { label: 'Contact sales', to: 'mailto:sales@nagm.io', ext: true }, { label: 'Support', to: 'mailto:support@nagm.io', ext: true }, { label: 'Terms of Service', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }] },
     ],
   },
   home: {

@@ -69,6 +69,8 @@ describe('one short form', () => {
     expect(screen.queryByLabelText(/Confirm|Phone|Country|Job Title|LinkedIn/)).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     expect(screen.getByText(/By creating an account, you agree to the/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
   });
 
   it('a company adds only its name', () => {

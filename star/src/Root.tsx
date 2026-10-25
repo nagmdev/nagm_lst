@@ -10,6 +10,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const JobSeekersPage = lazy(() => import('./pages/JobSeekersPage'));
 const CompaniesPage = lazy(() => import('./pages/CompaniesPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 const PageFallback = () => (
   <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--ink2)' }}>
@@ -44,6 +45,8 @@ export default function Root() {
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/terms" element={<LegalPage doc="terms" />} />
+          <Route path="/privacy" element={<LegalPage doc="privacy" />} />
 
           {/* Retired pages */}
           <Route path="/features/:slug" element={<LegacyRedirect table={FEATURE_REDIRECTS} fallback="/" />} />
