@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Building2, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, User } from '../design/glyphs';
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
@@ -444,9 +444,11 @@ const AuthPage: React.FC = () => {
   );
 
   // Agreeing is what creating the account means; the server records when.
+  // The documents open in a new tab so the half-filled form stays put.
+  const consentLink: React.CSSProperties = { color: 'var(--brandInk)', fontWeight: 600 };
   const consent = () => (
     <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '0 0 14px', lineHeight: 1.55 }}>
-      {t.consentPrefix}<span style={{ color: 'var(--ink2)', fontWeight: 600 }}>{t.terms}</span>{t.termsAnd}<span style={{ color: 'var(--ink2)', fontWeight: 600 }}>{t.privacy}</span>{t.consentSuffix}
+      {t.consentPrefix}<Link to="/terms" target="_blank" rel="noopener" style={consentLink}>{t.terms}</Link>{t.termsAnd}<Link to="/privacy" target="_blank" rel="noopener" style={consentLink}>{t.privacy}</Link>{t.consentSuffix}
     </p>
   );
 
