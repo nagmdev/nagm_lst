@@ -4,7 +4,7 @@ import { Building2, Briefcase, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, 
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
 import SelectDropdown from '../components/auth/SelectDropdown';
-import { authApi, handoffToApp, apiError, rememberPendingSignIn } from '../auth';
+import { authApi, handoffToApp, apiError, rememberPendingSignIn, planReturnTo } from '../auth';
 import { useBfcacheReset } from '../utils/useBfcacheReset';
 import { signInPasswordIssue } from '../utils/signInPassword';
 import type { AccountRole, RegisterPayload, CompanyOption } from '../auth';
@@ -130,7 +130,11 @@ const AuthPage: React.FC = () => {
   // independently: a one-person personal workspace on a recruiter plan, whose
   // jobs Nagm reviews and which never carries the Verified badge (owner
   // decision 2026-10-18, reversing 2026-10-15).
-  const [companyMode, setCompanyMode] = useState<'join' | 'independent'>('join');
+  // A recruiter plan picked on the pricing page is a plan for an independent
+  // recruiter: start on that path (joining a company never uses it).
+  const [companyMode, setCompanyMode] = useState<'join' | 'independent'>(
+    () => (/^RECRUITER_/.test(new URLSearchParams(location.search).get('plan') || '') ? 'independent' : 'join'),
+  );
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState<CompanyOption[]>([]);
   const [pickedCompany, setPickedCompany] = useState<CompanyOption | null>(null);
@@ -161,8 +165,9 @@ const AuthPage: React.FC = () => {
 
 
   const queryEmail = queryParams.get('email') || '';
-  // Where the app wants the person back after signing in (validated in appPathFor).
-  const returnTo = queryParams.get('returnTo');
+  // Where the app wants the person back after signing in (validated in appPathFor),
+  // else the plan chosen on the pricing page: its billing page, on that plan.
+  const returnTo = queryParams.get('returnTo') || planReturnTo(queryParams);
 
   const [values, setValues] = useState<Record<string, string>>({
     firstName: '', lastName: '',

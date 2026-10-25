@@ -55,10 +55,13 @@ export function PlanCard({ plan, cat, interval, compact, tag, wide }: { plan: Pl
   const discounted = promo && promo.kind !== 'FREE_DAYS' && promoPrice && promoPrice.totalMinor < promoPrice.listMinor ? promoPrice : null;
   const saving = priced && interval === 'YEAR' ? savingsOf(cat, plan.id) : null;
 
+  // A paid plan's button carries the plan and the period shown, so the person
+  // lands on paying for exactly this after signing up.
+  const chosen = priced ? { id: plan.id, interval } : undefined;
   const ctaTo = isQuote ? links.sales
-    : plan.audience === 'CANDIDATE' ? links.register('candidate')
-    : plan.audience === 'RECRUITER' ? links.register('recruiter')
-    : links.register('company');
+    : plan.audience === 'CANDIDATE' ? links.register('candidate', chosen)
+    : plan.audience === 'RECRUITER' ? links.register('recruiter', chosen)
+    : links.register('company', chosen);
   const ctaLabel = isQuote ? t.contactSales : isFree ? t.startFree : promo?.kind === 'FREE_DAYS' ? t.promo.startTrial : t.choose(plan.name[lang]);
   const ctaClass = `ns-btn ns-btn--block${(plan.featured && !tag) || promo ? ' ns-btn--primary' : ' ns-btn--secondary'}`;
 

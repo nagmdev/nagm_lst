@@ -248,6 +248,23 @@ describe('recruiter joining an existing company', () => {
     expect(sent.joinCompanyId).toBeUndefined();
   });
 
+  it('a recruiter plan from the pricing page starts on the independent path and comes back to pay for it', async () => {
+    renderSignup('/register?role=recruiter&plan=RECRUITER_PRO&interval=YEAR');
+    expect(screen.getByRole('radio', { name: 'Independent recruiter' })).toHaveAttribute('aria-checked', 'true');
+    type(/^First Name/, 'Mona');
+    type(/^Last Name/, 'Saleh');
+    type(/^Email/, 'mona@gmail.com');
+    fireEvent.click(screen.getByRole('button', { name: /Job Title/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'Recruiter' }));
+    type(/^Password/, 'Str0ngPass!');
+    type(/^Confirm Password/, 'Str0ngPass!');
+    acceptTerms();
+    submit();
+    await screen.findByText('verify page');
+    expect(api.register.mock.calls[0][0]).toEqual(expect.objectContaining({ role: 'recruiter', independent: true }));
+    expect((lastVerifyState as { returnTo?: string }).returnTo).toMatch(/\/billing\?plan=RECRUITER_PRO&interval=YEAR$/);
+  });
+
   it('refuses a javascript: LinkedIn link', async () => {
     renderSignup('/register?role=recruiter');
     type(/^LinkedIn Profile/, 'javascript:alert(1)');

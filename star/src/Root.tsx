@@ -17,6 +17,12 @@ const PageFallback = () => (
   </div>
 );
 
+/** An alias that keeps the query (`?role=…&plan=…&returnTo=…`), which a plain <Navigate> drops. */
+function KeepQuery({ to }: { to: string }) {
+  const { search } = useLocation();
+  return <Navigate to={`${to}${search}`} replace />;
+}
+
 function RedirectToApp() {
   const location = useLocation();
   useEffect(() => {
@@ -65,10 +71,10 @@ export default function Root() {
           <Route path="/login" element={<AuthPage />} />
           <Route path="/register" element={<AuthPage />} />
           {/* Aliases */}
-          <Route path="/signup" element={<Navigate to="/register" replace />} />
-          <Route path="/sign-up" element={<Navigate to="/register" replace />} />
-          <Route path="/signin" element={<Navigate to="/login" replace />} />
-          <Route path="/sign-in" element={<Navigate to="/login" replace />} />
+          <Route path="/signup" element={<KeepQuery to="/register" />} />
+          <Route path="/sign-up" element={<KeepQuery to="/register" />} />
+          <Route path="/signin" element={<KeepQuery to="/login" />} />
+          <Route path="/sign-in" element={<KeepQuery to="/login" />} />
           {/* Deep link straight to company form */}
           <Route path="/register/company" element={<AuthPage />} />
           <Route path="/verify" element={<Verify />} />

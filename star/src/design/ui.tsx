@@ -74,7 +74,14 @@ function useHashScroll() {
 /* nav                                                                 */
 
 export const links = {
-  register: (role?: 'candidate' | 'recruiter' | 'company') => (role ? `/register?role=${role}` : '/register'),
+  /** Sign-up, optionally for a plan: the app opens its billing page on that plan after the code is confirmed. */
+  register: (role?: 'candidate' | 'recruiter' | 'company', plan?: { id: string; interval: 'MONTH' | 'YEAR' }) => {
+    const q = new URLSearchParams();
+    if (role) q.set('role', role);
+    if (plan) { q.set('plan', plan.id); q.set('interval', plan.interval); }
+    const qs = q.toString();
+    return qs ? `/register?${qs}` : '/register';
+  },
   login: '/login',
   jobs: `${APP_ORIGIN}/jobs`,
   sales: 'mailto:sales@nagm.io',
