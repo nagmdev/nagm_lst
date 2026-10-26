@@ -1,12 +1,12 @@
-import { useMemo } from 'react';
 import { Link } from './i18n/links';
 import { useSiteText } from './i18n/siteText';
 import { Shell, Hero, Section, SectionHead, Strip, CtaBand, Lines, Eyebrow, Bullets, usePageMeta, links } from './design/ui';
 import { SeekerStage, MatchCard, PipelineBoard, ScaleBox, CandidateCard, ApplicantsTable, FunnelPanel } from './design/mock';
 import { Icon, Arrow, type IconName } from './design/icons';
 import { PlanCard } from './design/plans';
-import { PLANS, staticCatalog, guessMarket, type Market } from './data/pricing';
-import { useClientValue } from './utils/useClientValue';
+import { PLANS } from './data/pricing';
+import { useVisitorCatalog } from './data/useVisitorCatalog';
+import { CompanyStart } from './design/companyStart';
 
 /**
  * nagm.io home. CTAs go to nagm.io's own login/register (the pre-auth flow);
@@ -20,8 +20,7 @@ const TEASER_PLANS = ['CANDIDATE_FREE', 'CANDIDATE_PRO', 'COMPANY_GROWTH', 'COMP
 export default function Landing() {
   const t = useSiteText();
   usePageMeta('/');
-  const market = useClientValue<Market>(guessMarket, 'INTL');
-  const cat = useMemo(() => staticCatalog(market), [market]);
+  const cat = useVisitorCatalog();
   const h = t.home;
 
   return (
@@ -47,6 +46,9 @@ export default function Landing() {
           <SideCard card={h.twoSides.companies} scene={<ScaleBox width={560} height={318}><PipelineBoard /></ScaleBox>} to={links.register('company')} icon="building" tone="cyan" />
         </div>
       </Section>
+
+      {/* 4b — how a company starts */}
+      <CompanyStart more />
 
       {/* 5 — AI */}
       <Section tone="ink" field>

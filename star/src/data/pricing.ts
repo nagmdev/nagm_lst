@@ -204,12 +204,12 @@ export function formatMoney(minor: number, market: Market, lang: Lang): string {
 
 export const vatLabel = (market: Market) => `${MARKET_META[market].vatBps / 100}%`;
 
-/** A first guess at the visitor's market before the API answers. */
+/**
+ * A first guess at the visitor's market, shown only until the API answers.
+ * The API decides from where the visitor is (or the account's country), and
+ * nobody picks another country's prices.
+ */
 export function guessMarket(): Market {
-  try {
-    const saved = localStorage.getItem('nagm_market') as Market | null;
-    if (saved && MARKETS.includes(saved)) return saved;
-  } catch { /* ignore */ }
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     if (tz === 'Africa/Cairo') return 'EG';
@@ -221,10 +221,6 @@ export function guessMarket(): Market {
     if (/-AE$/i.test(lang)) return 'AE';
   } catch { /* ignore */ }
   return 'INTL';
-}
-
-export function rememberMarket(m: Market) {
-  try { localStorage.setItem('nagm_market', m); } catch { /* ignore */ }
 }
 
 /* ---------------- live catalog ---------------- */
@@ -273,9 +269,10 @@ export function staticCatalog(market: Market): Catalog {
   };
 }
 
-export async function fetchCatalog(market: Market, signal?: AbortSignal): Promise<Catalog> {
-  const { data } = await api.get('/billing/catalog', { params: { market }, signal, timeout: 6000 });
-  const m: Market = MARKETS.includes(data?.market) ? data.market : market;
+/** The visitor's prices: the API picks the market (where they are, or their account's country). */
+export async function fetchCatalog(signal?: AbortSignal): Promise<Catalog> {
+  const { data } = await api.get('/billing/catalog', { signal, timeout: 6000 });
+  const m: Market = MARKETS.includes(data?.market) ? data.market : guessMarket();
   const meta = MARKET_META[m];
   // The API sends prices as { MONTH: Price | null, YEAR: Price | null }; an
   // array of prices is accepted too.

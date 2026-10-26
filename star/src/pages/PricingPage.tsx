@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useClientValue } from '../utils/useClientValue';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
@@ -8,12 +7,15 @@ import { BillingScene, ChevronField } from '../design/art';
 import { Icon, Arrow, type IconName } from '../design/icons';
 import { PlanCard } from '../design/plans';
 import {
-  PLANS, FEATURES, MARKETS, MARKET_META, staticCatalog, fetchCatalog, guessMarket, rememberMarket, vatLabel, bestSavingsPercent, seatsOf,
-  type Market, type Audience, type Interval, type Catalog,
+  PLANS, FEATURES, MARKET_META, vatLabel, bestSavingsPercent, seatsOf,
+  type Audience, type Interval,
 } from '../data/pricing';
+import { useVisitorCatalog } from '../data/useVisitorCatalog';
 
 /**
- * Pricing. Three audiences, two billing intervals, four markets. Prices come
+ * Pricing. Three audiences, two billing intervals, and the visitor's own
+ * market only: the API decides it from where they are (or their account's
+ * country), and there is no picker for another country's prices. Prices come
  * from the API catalog when it answers and from data/pricing.ts until then,
  * so the page is never empty and never shows a spinner where a number goes.
  */
@@ -27,12 +29,7 @@ export default function PricingPage() {
   const p = t.pricing;
   usePageMeta('/pricing');
 
-  const [params, setParams] = useSearchParams();
-  const paramMarket = (params.get('market') || '').toUpperCase() as Market;
-  // The guess needs the browser (saved choice, time zone): pre-rendered pages show INTL first.
-  const guessed = useClientValue<Market>(guessMarket, 'INTL');
-  const [picked, setMarket] = useState<Market | null>(MARKETS.includes(paramMarket) ? paramMarket : null);
-  const market = picked ?? guessed;
+  const [params] = useSearchParams();
   // Who the prices are for: #seekers / #recruiters / #companies (the menu's
   // links), or the older ?for=… . Applied after the first render, so the page
   // pre-rendered for companies hydrates cleanly and then switches.
@@ -41,29 +38,15 @@ export default function PricingPage() {
   const [audience, setAudience] = useState<Audience>('COMPANY');
   useEffect(() => { if (asked) setAudience(asked); }, [asked]);
   const [interval, setInterval] = useState<Interval>('YEAR');
-  const [cat, setCat] = useState<Catalog>(() => staticCatalog(market));
-
-  useEffect(() => {
-    if (picked) rememberMarket(picked);
-    setCat(staticCatalog(market));
-    const ctrl = new AbortController();
-    fetchCatalog(market, ctrl.signal).then((c) => { if (!ctrl.signal.aborted) setCat(c); }).catch(() => { /* list prices stay */ });
-    return () => ctrl.abort();
-  }, [market, picked]);
-
-  const pick = (m: Market) => {
-    setMarket(m);
-    const next = new URLSearchParams(params);
-    next.set('market', m);
-    setParams(next, { replace: true });
-  };
+  const cat = useVisitorCatalog();
+  const market = cat.market;
 
   const plans = useMemo(() => PLANS.filter((x) => x.audience === audience), [audience]);
   // Quote-only plans (Enterprise) sit full width under the priced ones.
   const priced = plans.filter((x) => x.monthly !== undefined);
   const quoted = plans.filter((x) => x.monthly === undefined);
   const features = useMemo(() => FEATURES.filter((f) => f.audience === (audience === 'CANDIDATE' ? 'CANDIDATE' : 'COMPANY')), [audience]);
-  const tamara = cat.tamaraAvailable && interval === 'YEAR';
+  const tamara = cat.tamaraAvailable;
   // "Save up to N%" from the real prices of the plans on this tab; no tag when nothing is saved.
   const bestSaving = bestSavingsPercent(cat, priced.map((x) => x.id));
   const companySeats = PLANS.filter((x) => x.audience === 'COMPANY' && x.monthly).map((x) => seatsOf(cat, x)).filter((n): n is number => typeof n === 'number' && n > 1);
@@ -103,12 +86,10 @@ export default function PricingPage() {
             </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <span className="ns-body" style={{ fontSize: 13, marginInlineEnd: 4 }}><Icon name="globe" size={15} style={{ verticalAlign: -3, marginInlineEnd: 6 }} />{p.market.label}</span>
-            {MARKETS.map((m) => (
-              <button key={m} type="button" className="ns-market-pill" aria-pressed={market === m} onClick={() => pick(m)}>
-                {p.market[m]} <span className="ns-mono" style={{ fontSize: 11 }}>{MARKET_META[m].currency}</span>
-              </button>
-            ))}
+            <span className="ns-market-pill" data-active="true" data-testid="pricing-market" title={p.market.locked}>
+              <Icon name="globe" size={15} />{p.market.pricesFor(p.market[market])} <span className="ns-mono" style={{ fontSize: 11 }}>{MARKET_META[market].currency}</span>
+            </span>
+            <span className="ns-body" style={{ fontSize: 13 }}>{p.market.locked}</span>
             <span className="ns-body" style={{ fontSize: 13, marginInlineStart: 'auto' }}>
               {market === 'INTL' ? p.market.noVat : p.market.vatNote(vatLabel(market))}
               {!cat.live && <span> · {p.offline}</span>}

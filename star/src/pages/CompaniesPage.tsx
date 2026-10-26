@@ -2,6 +2,7 @@ import { useSiteText } from '../i18n/siteText';
 import { Shell, Hero, Section, SectionHead, Strip, FeatureCard, Steps, Note, CtaBand, usePageMeta, links } from '../design/ui';
 import { TeamStage, PipelineBoard, ApplicantsTable, TeamThread, FunnelPanel, CompanyHeader, ScaleBox } from '../design/mock';
 import { Icon, type IconName } from '../design/icons';
+import { CompanyStart } from '../design/companyStart';
 
 /** Solutions → by user → companies and recruiters. */
 const STRIP_ICONS: IconName[] = ['spark', 'applicants', 'stages', 'mention', 'rediscover', 'analytics'];
@@ -126,6 +127,8 @@ export default function CompaniesPage() {
           <div><ScaleBox width={470} height={290}><FunnelPanel /></ScaleBox></div>
         </div>
       </Section>
+
+      <CompanyStart />
 
       <CtaBand copy={c.cta} primary={{ to: links.register('company') }} secondary={{ to: links.register('recruiter') }} />
     </Shell>
