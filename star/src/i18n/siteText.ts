@@ -32,6 +32,8 @@ export interface SiteText {
     hero: Section & { cta1: string; cta2: string; card1: { title: string; body: string; tags: string[] }; card2: { title: string; body: string } };
     strip: { title: string; body: string; items: Strip[] };
     twoSides: Section & { seekers: Card; companies: Card };
+    /** How a company starts: sign up, documents, pay, Nagm activates. Shown on home and /companies. */
+    start: Section & { steps: Card[]; cta: string; more: string; note: string };
     ai: Section & { stages: { tag: string; title: string; body: string }[] };
     why: Section & { cards: Card[] };
     plans: Section & { more: string };
@@ -85,7 +87,7 @@ export interface SiteText {
       firstMonth: (a: string) => string; firstYear: (a: string) => string; trialThen: (n: number, a: string) => string; startTrial: string;
     };
     who: { title: string; body: string; recruiter: { title: string; tag: string; users: string; points: string[]; see: string }; company: { title: string; tag: string; users: (min: number, max: number) => string; points: string[]; see: string }; note: string };
-    market: { label: string; EG: string; SA: string; AE: string; INTL: string; vatNote: (rate: string) => string; noVat: string };
+    market: { pricesFor: (country: string) => string; locked: string; EG: string; SA: string; AE: string; INTL: string; vatNote: (rate: string) => string; noVat: string };
     perMonth: string; perYear: string; billedYearly: (amount: string) => string; billedMonthly: string; free: string; quote: string;
     mostPopular: string; current: string; startFree: string; choose: (name: string) => string; contactSales: string;
     tamara: { title: string; body: string; badge: string };
@@ -181,6 +183,20 @@ const ar: SiteText = {
         cta: 'أنشئ حسابك للتوظيف',
       },
     },
+    start: {
+      eyebrow: 'للشركات',
+      title: ['كيف تبدأ شركتك مع نجم؟'],
+      body: 'حساب الشركة يُنشأ باسم شركتك من أول يوم. نراجع أوراقها ثم نفعّل لوحة التحكم، وتقدر تختار باقتك وتدفع أثناء المراجعة.',
+      steps: [
+        { title: '١. أنشئ حساب الشركة', body: 'سجّل ببريد العمل الخاص بشركتك (وليس بريدًا شخصيًا)، فيُنشأ الحساب باسم الشركة مباشرة.' },
+        { title: '٢. ارفع أوراق الشركة', body: 'السجل التجاري والبطاقة أو الشهادة الضريبية، من صفحة توثيق الشركة داخل حسابك.' },
+        { title: '٣. اختر باقتك وادفع', body: 'الفوترة متاحة أثناء المراجعة، بعملة بلدك: البطاقة في كل الدول، والمحافظ في مصر، وتمارا شهريًا أو سنويًا في السعودية والإمارات.' },
+        { title: '٤. نجم تراجع وتفعّل', body: 'بعد اعتماد الأوراق تُفعَّل لوحة التحكم: انشر الوظائف، وادعُ فريقك، وابدأ استقبال المتقدمين.' },
+      ],
+      cta: 'أنشئ حساب شركتك',
+      more: 'تعرّف على نجم للشركات',
+      note: 'دولة الحساب تُحدَّد من مكان التسجيل وتبقى ثابتة: أسعار السعودية لحسابات السعودية، وأسعار مصر لحسابات مصر.',
+    },
     ai: {
       eyebrow: 'ذكاء اصطناعي يخدم خطواتك الفعلية',
       title: ['من بيانات متفرقة إلى صورة أوضح عن التوافق.'],
@@ -221,7 +237,7 @@ const ar: SiteText = {
         { q: 'هل نجم مجاني؟', a: 'يمكنك البدء مجانًا: هناك باقة مجانية للباحثين عن عمل، وأخرى لمسؤولي التوظيف، وأخرى للشركات. الباقات المدفوعة ترفع الحدود وتضيف مزايا، وتُدفع شهريًا أو سنويًا، والسنوي أوفر من 12 دفعة شهرية.' },
         { q: 'ما هو فحص ATS في نجم؟', a: 'فحص ATS يحلّل سيرتك الذاتية بالذكاء الاصطناعي أمام متطلبات وظيفة محددة، ويعرض درجة توافقك وتوصيات واضحة لتحسين سيرتك قبل أن تتقدّم.' },
         { q: 'ماذا يقدم نجم للشركات ومسؤولي التوظيف؟', a: 'نشر الوظائف، ومراجعة المتقدمين بتحليل توافق بالذكاء الاصطناعي، وإدارة مراحل التوظيف، وقاعدة مرشحين قابلة للبحث مع إعادة اكتشاف المتقدمين السابقين، والتعاون مع الفريق بالملاحظات والإشارات والصلاحيات، وتحليلات التوظيف والتصدير إلى Excel.' },
-        { q: 'في أي دول يعمل نجم وبأي عملة؟', a: 'تُعرض الأسعار بالجنيه المصري في مصر، وبالريال السعودي في السعودية، وبالدرهم الإماراتي في الإمارات، شاملة ضريبة القيمة المضافة، وبالدولار الأمريكي في باقي الدول. وفي السعودية والإمارات يمكن تقسيط الاشتراك السنوي عبر تمارا.' },
+        { q: 'في أي دول يعمل نجم وبأي عملة؟', a: 'تُعرض الأسعار بالجنيه المصري في مصر، وبالريال السعودي في السعودية، وبالدرهم الإماراتي في الإمارات، شاملة ضريبة القيمة المضافة، وبالدولار الأمريكي في باقي الدول. وتظهر لكل زائر أسعار بلده فقط، وتبقى دولة الحساب كما سُجّل. وفي السعودية والإمارات يمكن تقسيط الاشتراك الشهري أو السنوي عبر تمارا.' },
         { q: 'هل بياناتي آمنة على نجم؟', a: 'نشرح في سياسة الخصوصية ما نجمعه ولماذا ومع من نشاركه، وحقك في الوصول إلى بياناتك وتصحيحها وحذفها. ويتم الدفع عبر بوابات دفع معتمدة، ولا تُحفظ بيانات بطاقتك على خوادم نجم.' },
       ],
     },
@@ -467,7 +483,7 @@ const ar: SiteText = {
     hero: {
       eyebrow: 'باقات نجم',
       title: ['ابدأ بما تحتاجه اليوم.', 'واختر ما يناسب خطوتك التالية.'],
-      body: 'باقات للباحثين عن عمل ولمسؤولي التوظيف المستقلين وللشركات. الأسعار بعملة بلدك وشاملة الضريبة، وتُدفع بالبطاقة أو بالمحفظة، وبالتقسيط عبر تمارا للاشتراك السنوي في السعودية والإمارات.',
+      body: 'باقات للباحثين عن عمل ولمسؤولي التوظيف المستقلين وللشركات. الأسعار بعملة بلدك وشاملة الضريبة، وتُدفع بالبطاقة أو بالمحفظة، أو عبر تمارا للاشتراك الشهري والسنوي في السعودية والإمارات.',
     },
     audience: { seekers: 'للباحثين عن عمل', recruiters: 'لمسؤولي التوظيف', companies: 'للشركات' },
     interval: { month: 'شهري', year: 'سنوي', saveUpTo: (pct) => `وفّر حتى ${pct}٪` },
@@ -496,10 +512,10 @@ const ar: SiteText = {
       company: { title: 'شركة', tag: 'لفريق', users: (min, max) => `من ${min} إلى ${max} مستخدمًا، أو أكثر`, points: ['عدة مستخدمين بأدوار وصلاحيات، حسب الباقة.', 'مساحة عمل واحدة للشركة يعمل فيها الفريق معًا.', 'شارة الشركة الموثّقة بعد التوثيق.'], see: 'باقات الشركات' },
       note: 'باقات مسؤول التوظيف للأفراد فقط؛ لا يمكن للشركات الاشتراك فيها مهما كان السعر.',
     },
-    market: { label: 'الدولة', EG: 'مصر', SA: 'السعودية', AE: 'الإمارات', INTL: 'دولي', vatNote: (rate) => `الأسعار شاملة ضريبة القيمة المضافة (${rate}).`, noVat: 'الأسعار بالدولار الأمريكي.' },
+    market: { pricesFor: (country) => `أسعار ${country}`, locked: 'تظهر أسعار بلدك فقط، وتبقى دولة حسابك كما سجّلت.', EG: 'مصر', SA: 'السعودية', AE: 'الإمارات', INTL: 'دولية', vatNote: (rate) => `الأسعار شاملة ضريبة القيمة المضافة (${rate}).`, noVat: 'الأسعار بالدولار الأمريكي.' },
     perMonth: '/ شهريًا', perYear: '/ سنويًا', billedYearly: (amount) => `تُسدّد سنويًا بقيمة ${amount}`, billedMonthly: 'تتجدد شهريًا، وتُلغى في أي وقت', free: 'مجانًا', quote: 'عرض مخصص',
     mostPopular: 'الأكثر اختيارًا', current: 'باقتك الحالية', startFree: 'ابدأ مجانًا', choose: (name) => `اختر ${name}`, contactSales: 'تواصل مع المبيعات',
-    tamara: { title: 'قسّطها مع تمارا', body: 'في السعودية والإمارات، ادفع الاشتراك السنوي على دفعات عبر تمارا بدون فوائد، وفق شروط تمارا.', badge: 'تمارا متاحة' },
+    tamara: { title: 'قسّطها مع تمارا', body: 'في السعودية والإمارات، ادفع اشتراكك الشهري أو السنوي عبر تمارا، وقسّطه بدون فوائد وفق شروط تمارا.', badge: 'تمارا متاحة' },
     pay: { title: 'طرق الدفع', body: 'نستخدم بوابات دفع معتمدة في كل سوق؛ لا تُحفظ بيانات بطاقتك على خوادم نجم.', card: 'بطاقات مدى وفيزا وماستركارد', wallet: 'المحافظ الإلكترونية في مصر', tamara: 'تمارا للتقسيط في السعودية والإمارات', applePay: 'Apple Pay', invoice: 'فاتورة ضريبية لكل عملية' },
     addons: {
       eyebrow: 'إضافات عند الحاجة',
@@ -517,7 +533,7 @@ const ar: SiteText = {
       title: 'أسئلة شائعة',
       items: [
         { q: 'هل يمكنني الإلغاء في أي وقت؟', a: 'نعم. الاشتراك الشهري يتجدد تلقائيًا ويمكن إيقاف التجديد في أي وقت من صفحة الاشتراك، وتستمر المزايا حتى نهاية الفترة المدفوعة.' },
-        { q: 'كيف يعمل الاشتراك السنوي؟', a: 'يُدفع مرة واحدة مقدمًا، وهو أرخص من 12 دفعة شهرية؛ وتعرض كل باقة مقدار التوفير الفعلي بعملة بلدك. في السعودية والإمارات يمكن تقسيطه عبر تمارا، وتُفعّل الباقة فور اعتماد الدفعة الأولى.' },
+        { q: 'كيف يعمل الاشتراك السنوي؟', a: 'يُدفع مرة واحدة مقدمًا، وهو أرخص من 12 دفعة شهرية؛ وتعرض كل باقة مقدار التوفير الفعلي بعملة بلدك. في السعودية والإمارات يمكن دفعه عبر تمارا (وكذلك الشهري)، وتُفعّل الباقة فور اعتماد الدفعة الأولى.' },
         { q: 'هل الأسعار شاملة الضريبة؟', a: 'نعم. في مصر والسعودية والإمارات تُعرض الأسعار بالعملة المحلية شاملة ضريبة القيمة المضافة، وتصلك فاتورة ضريبية لكل عملية.' },
         { q: 'ماذا يحدث عند تجاوز حدود الباقة؟', a: 'تظهر لك رسالة واضحة بالحد والمستخدم منه، ويمكنك الترقية أو شراء إضافة. لا تُقطع الخدمة فجأة ولا تُحذف بياناتك.' },
         { q: 'ما الفرق بين باقة مسؤول التوظيف وباقة الشركة؟', a: 'عدد المستخدمين. باقة مسؤول التوظيف لمستخدم واحد فقط في مساحة عمل شخصية، ولا يمكن إضافة أعضاء إليها. باقات الشركات لفريق من عدة مستخدمين بأدوار وصلاحيات في مساحة عمل مشتركة، وتتاح لها شارة الشركة الموثّقة بعد التوثيق. ولا يمكن للشركات الاشتراك في باقات مسؤول التوظيف.' },
@@ -612,6 +628,20 @@ const en: SiteText = {
         cta: 'Create a hiring account',
       },
     },
+    start: {
+      eyebrow: 'For companies',
+      title: ['How does a company start on Nagm?'],
+      body: 'A company account carries your company’s name from day one. We review its documents and then switch the dashboard on; you can pick a plan and pay while the review runs.',
+      steps: [
+        { title: '1. Create the company account', body: 'Sign up with your company work email (not a personal address), and the account is created in the company’s name.' },
+        { title: '2. Upload the company documents', body: 'The commercial registration and the tax card or certificate, from the company verification page in your account.' },
+        { title: '3. Pick a plan and pay', body: 'Billing is open during the review, in your country’s currency: card everywhere, mobile wallets in Egypt, and Tamara monthly or yearly in Saudi Arabia and the UAE.' },
+        { title: '4. Nagm reviews and activates', body: 'Once the documents are approved the dashboard switches on: post jobs, invite your team and start receiving applicants.' },
+      ],
+      cta: 'Create your company account',
+      more: 'See Nagm for companies',
+      note: 'An account’s country is set where it signs up and stays fixed: Saudi prices for Saudi accounts, Egyptian prices for Egyptian accounts.',
+    },
     ai: {
       eyebrow: 'AI that serves the steps you actually take',
       title: ['From scattered data to a clearer picture of fit.'],
@@ -652,7 +682,7 @@ const en: SiteText = {
         { q: 'Is Nagm free?', a: 'You can start for free: there is a free plan for job seekers, one for recruiters and one for companies. Paid plans raise the limits and add features, billed monthly or yearly; yearly costs less than 12 monthly payments.' },
         { q: "What is Nagm's ATS check?", a: 'The ATS check uses AI to analyse your CV against the requirements of a specific job, then shows your match score and clear recommendations to improve your CV before you apply.' },
         { q: 'What does Nagm offer companies and recruiters?', a: 'Job posting, applicant review with AI match analysis, hiring stages, a searchable candidate base that resurfaces past applicants, team collaboration with notes, mentions and permissions, and hiring analytics with Excel export.' },
-        { q: 'Which countries and currencies does Nagm support?', a: 'Prices are shown in Egyptian pounds in Egypt, Saudi riyals in Saudi Arabia and UAE dirhams in the UAE, with VAT included, and in US dollars everywhere else. In Saudi Arabia and the UAE the yearly plan can be split into instalments with Tamara.' },
+        { q: 'Which countries and currencies does Nagm support?', a: 'Prices are shown in Egyptian pounds in Egypt, Saudi riyals in Saudi Arabia and UAE dirhams in the UAE, with VAT included, and in US dollars everywhere else. Every visitor sees their own country’s prices only, and an account keeps the country it signed up in. In Saudi Arabia and the UAE monthly and yearly plans can be paid with Tamara.' },
         { q: 'Is my data safe on Nagm?', a: 'Our Privacy Policy explains what we collect and why, who we share it with, and your right to access, correct and delete your data. Payments go through certified payment gateways, and your card details are never stored on Nagm servers.' },
       ],
     },
@@ -898,7 +928,7 @@ const en: SiteText = {
     hero: {
       eyebrow: 'Nagm plans',
       title: ['Start with what you need today.', 'Choose what fits your next step.'],
-      body: 'Plans for job seekers, independent recruiters and companies. Prices are shown in your currency with tax included, paid by card or wallet — or in instalments with Tamara on yearly plans in Saudi Arabia and the UAE.',
+      body: 'Plans for job seekers, independent recruiters and companies. Prices are shown in your currency with tax included, paid by card or wallet — or with Tamara on monthly and yearly plans in Saudi Arabia and the UAE.',
     },
     audience: { seekers: 'Job seekers', recruiters: 'Recruiters', companies: 'Companies' },
     interval: { month: 'Monthly', year: 'Yearly', saveUpTo: (pct) => `Save up to ${pct}%` },
@@ -927,10 +957,10 @@ const en: SiteText = {
       company: { title: 'Company', tag: 'For a team', users: (min, max) => `${min} to ${max} users, or more`, points: ['Several users with roles and permissions, by plan.', 'One company workspace your team shares.', 'The Verified company badge after verification.'], see: 'Company plans' },
       note: 'Recruiter plans are for individuals only; companies cannot subscribe to them, whatever the price.',
     },
-    market: { label: 'Country', EG: 'Egypt', SA: 'Saudi Arabia', AE: 'UAE', INTL: 'International', vatNote: (rate) => `Prices include VAT (${rate}).`, noVat: 'Prices in US dollars.' },
+    market: { pricesFor: (country) => `Prices for ${country}`, locked: 'You see your own country’s prices; your account keeps the country it signed up in.', EG: 'Egypt', SA: 'Saudi Arabia', AE: 'the UAE', INTL: 'international customers', vatNote: (rate) => `Prices include VAT (${rate}).`, noVat: 'Prices in US dollars.' },
     perMonth: '/ month', perYear: '/ year', billedYearly: (amount) => `Billed yearly at ${amount}`, billedMonthly: 'Renews monthly, cancel any time', free: 'Free', quote: 'Custom quote',
     mostPopular: 'Most popular', current: 'Your plan', startFree: 'Start for free', choose: (name) => `Choose ${name}`, contactSales: 'Contact sales',
-    tamara: { title: 'Split it with Tamara', body: 'In Saudi Arabia and the UAE, pay the yearly plan in interest-free instalments with Tamara, subject to Tamara’s terms.', badge: 'Tamara available' },
+    tamara: { title: 'Split it with Tamara', body: 'In Saudi Arabia and the UAE, pay your monthly or yearly plan with Tamara, in interest-free instalments subject to Tamara’s terms.', badge: 'Tamara available' },
     pay: { title: 'Ways to pay', body: 'We use licensed payment gateways in each market; your card details never touch Nagm’s servers.', card: 'mada, Visa and Mastercard', wallet: 'Mobile wallets in Egypt', tamara: 'Tamara instalments in KSA and the UAE', applePay: 'Apple Pay', invoice: 'A tax invoice for every payment' },
     addons: {
       eyebrow: 'Add-ons when you need them',
@@ -948,7 +978,7 @@ const en: SiteText = {
       title: 'Frequently asked questions',
       items: [
         { q: 'Can I cancel at any time?', a: 'Yes. Monthly plans renew automatically and you can stop the renewal at any time from your subscription page; your plan stays active until the end of the paid period.' },
-        { q: 'How does the yearly plan work?', a: 'It is paid once, up front, for less than 12 monthly payments; each plan shows exactly what you save in your currency. In Saudi Arabia and the UAE you can split it with Tamara; the plan activates as soon as the first instalment is approved.' },
+        { q: 'How does the yearly plan work?', a: 'It is paid once, up front, for less than 12 monthly payments; each plan shows exactly what you save in your currency. In Saudi Arabia and the UAE you can pay it (or a monthly plan) with Tamara; the plan activates as soon as the first instalment is approved.' },
         { q: 'Do prices include tax?', a: 'Yes. In Egypt, Saudi Arabia and the UAE prices are shown in local currency with VAT included, and you receive a tax invoice for every payment.' },
         { q: 'What happens when I reach a plan limit?', a: 'You see a clear message with the limit and what you have used, and you can upgrade or buy an add-on. Service is never cut off abruptly and your data is never deleted.' },
         { q: 'What is the difference between a recruiter plan and a company plan?', a: 'The number of users. A recruiter plan is for one user in a personal workspace; no members can be added. Company plans are for a team of users with roles and permissions in a shared workspace, and can carry the Verified company badge after verification. Companies cannot subscribe to recruiter plans.' },

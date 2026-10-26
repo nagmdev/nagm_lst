@@ -56,7 +56,6 @@ describe('home page', () => {
   });
 
   it('teases four plans with the approved list prices and links to the full pricing page', () => {
-    localStorage.setItem('nagm_market', 'INTL');
     renderHome();
     const plans = screen.getByRole('link', { name: /Compare all plans and prices/ });
     expect(plans).toHaveAttribute('href', '/en/pricing');
@@ -75,6 +74,13 @@ describe('home page', () => {
       if (/^\/en(\/(pricing|about|companies|job-seekers))?$/.test(href)) expect(a.getAttribute('rel') ?? '', href).not.toContain('nofollow');
     }
     expect(screen.getAllByRole('link').some((a) => a.getAttribute('href')?.startsWith('/register'))).toBe(true);
+  });
+
+  it('shows companies how they start: work email, documents, pay, activation', () => {
+    renderHome();
+    expect(screen.getByRole('heading', { name: 'How does a company start on Nagm?' })).toBeInTheDocument();
+    expect(screen.getByText('2. Upload the company documents')).toBeInTheDocument();
+    expect(screen.getByTestId('company-start-cta')).toHaveAttribute('href', '/register?role=company');
   });
 
   it("links Nagm's four social accounts from the footer, in a new tab", () => {
@@ -145,7 +151,7 @@ describe('live catalog', () => {
         plans: [{ id: 'COMPANY_GROWTH', audience: 'COMPANY', prices: { MONTH: { interval: 'MONTH', currency: 'SAR', amountMinor: 46900 }, YEAR: null } }],
       },
     } as never);
-    const cat = await fetchCatalog('SA');
+    const cat = await fetchCatalog();
     expect(cat.live).toBe(true);
     expect(priceOf(cat, 'COMPANY_GROWTH', 'MONTH')).toBe(46900);
     // No live yearly price: not sold yearly. Never a yearly price computed from
@@ -190,7 +196,7 @@ describe('pricing page', () => {
 
   it('company cards lead with users, show the live promotion, and the comparison starts with Users', async () => {
     localStorage.setItem('nagm_lang', 'en');
-    await renderPricing('/pricing?for=companies&market=EG');
+    await renderPricing('/pricing?for=companies');
     fireEvent.click(screen.getByRole('button', { name: 'Monthly' }));
     const growth = await screen.findByRole('article', { name: 'Growth' });
     expect(within(growth).getByTestId('plan-users')).toHaveTextContent(/5 users.*hiring team/);
@@ -206,7 +212,7 @@ describe('pricing page', () => {
 
   it('yearly: a saving only where the real yearly price is cheaper; "save up to" is the best real one', async () => {
     localStorage.setItem('nagm_lang', 'en');
-    await renderPricing('/pricing?for=companies&market=EG');
+    await renderPricing('/pricing?for=companies');
     await waitFor(() => expect(screen.getByTestId('save-up-to')).toHaveTextContent('Save up to 20%'));
     // Yearly is the default tab.
     const starter = await screen.findByRole('article', { name: 'Starter' });
@@ -217,14 +223,35 @@ describe('pricing page', () => {
 
   it('a recruiter card says 1 user — for an independent recruiter', async () => {
     localStorage.setItem('nagm_lang', 'en');
-    await renderPricing('/pricing?for=recruiters&market=EG');
+    await renderPricing('/pricing?for=recruiters');
     const pro = await screen.findByRole('article', { name: 'Pro' });
     expect(within(pro).getByTestId('plan-users')).toHaveTextContent(/1 user.*independent recruiter/);
   });
 
+  it("shows the visitor's own country only: no picker, and the API is not told a market", async () => {
+    localStorage.setItem('nagm_lang', 'en');
+    const spy = await renderPricing('/pricing?for=companies&market=SA');
+    expect(spy).toHaveBeenCalledWith('/billing/catalog', expect.not.objectContaining({ params: expect.anything() }));
+    await waitFor(() => expect(screen.getByTestId('pricing-market')).toHaveTextContent(/Prices for Egypt.*EGP/));
+    expect(screen.queryByRole('button', { name: /Saudi Arabia|UAE|International/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Split it with Tamara/)).not.toBeInTheDocument();
+  });
+
+  it('a Saudi visitor sees riyals and Tamara on monthly plans too', async () => {
+    localStorage.setItem('nagm_lang', 'en');
+    const sar = (n: number) => ({ currency: 'SAR', amountMinor: n });
+    await renderPricing('/pricing?for=companies', liveCatalog({
+      market: 'SA', currency: 'SAR', vatBps: 1500, tamaraAvailable: true, providers: ['paymob', 'tamara'],
+      plans: [{ id: 'COMPANY_GROWTH', audience: 'COMPANY', entitlements: { seats: 5 }, prices: { MONTH: sar(46900), YEAR: sar(450000) }, promotions: [] }],
+    }));
+    await waitFor(() => expect(screen.getByTestId('pricing-market')).toHaveTextContent(/Prices for Saudi Arabia.*SAR/));
+    fireEvent.click(screen.getByRole('button', { name: 'Monthly' }));
+    expect(screen.getByText('Split it with Tamara')).toBeInTheDocument();
+  });
+
   it('opens on the audience the menu link names (#recruiters), without a query string', async () => {
     localStorage.setItem('nagm_lang', 'en');
-    await renderPricing('/pricing?market=EG#recruiters');
+    await renderPricing('/pricing#recruiters');
     expect(await screen.findByRole('tab', { name: /recruiter/i, selected: true })).toBeInTheDocument();
   });
 });
