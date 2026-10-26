@@ -138,9 +138,9 @@ export function CandidateCard({ who = 'sara', eyebrow, tabs, compact, style }: {
       </div>
       {!compact && (
         <div className="nm-facts">
-          <div><b><bdi>6</bdi></b><span>{lang === 'ar' ? 'سنوات خبرة' : 'years'}</span></div>
-          <div><b>{lang === 'ar' ? 'ع · En' : 'AR · EN'}</b><span>{lang === 'ar' ? 'اللغات' : 'languages'}</span></div>
-          <div><b><bdi>92%</bdi></b><span>{lang === 'ar' ? 'اكتمال الملف' : 'complete'}</span></div>
+          <div><span className="ns-b"><bdi>6</bdi></span><span>{lang === 'ar' ? 'سنوات خبرة' : 'years'}</span></div>
+          <div><span className="ns-b">{lang === 'ar' ? 'ع · En' : 'AR · EN'}</span><span>{lang === 'ar' ? 'اللغات' : 'languages'}</span></div>
+          <div><span className="ns-b"><bdi>92%</bdi></span><span>{lang === 'ar' ? 'اكتمال الملف' : 'complete'}</span></div>
         </div>
       )}
     </Window>
@@ -308,7 +308,7 @@ export function AnswerCard({ style }: { style?: CSSProperties }) {
     <Window style={style} title={lang === 'ar' ? 'مكتبة إجاباتي' : 'My answer library'} icon="interview">
       <div className="nm-q"><span className="nm-tag">{lang === 'ar' ? 'سلوكي' : 'Behavioural'}</span>{lang === 'ar' ? 'حدّثنا عن مرة حللت فيها مشكلة أداء.' : 'Tell us about a time you fixed a performance problem.'}</div>
       <div className="nm-star">
-        {parts.map(([k, v]) => <div key={k.en}><b>{tr(lang, k)}</b><span>{tr(lang, v)}</span></div>)}
+        {parts.map(([k, v]) => <div key={k.en}><span className="ns-b">{tr(lang, k)}</span><span>{tr(lang, v)}</span></div>)}
       </div>
       <div className="nm-row" style={{ justifyContent: 'space-between', marginTop: 10 }}>
         <span className="nm-saved"><Icon name="check" size={13} weight={2.2} />{lang === 'ar' ? 'محفوظة · عُدّلت أمس' : 'Saved · edited yesterday'}</span>
@@ -326,7 +326,7 @@ export function TeamThread({ style }: { style?: CSSProperties }) {
       <div className="nm-event">
         <span className="nm-event-icon"><Icon name="calendar" size={14} /></span>
         <div style={{ flex: 1 }}>
-          <b>{lang === 'ar' ? 'مقابلة تقنية' : 'Technical interview'}</b>
+          <span className="ns-b">{lang === 'ar' ? 'مقابلة تقنية' : 'Technical interview'}</span>
           <div className="nm-mini-sub">{lang === 'ar' ? 'الخميس · 11:00 ص' : 'Thursday · 11:00'}</div>
         </div>
         <span className="nm-stack"><Avatar who="ahmed" size={22} ring /><Avatar who="reem" size={22} ring /></span>
@@ -389,7 +389,7 @@ export function AutofillCard({ style }: { style?: CSSProperties }) {
         {fields.map(([l, v]) => (
           <div key={l.en} className="nm-field">
             <span>{tr(lang, l)}</span>
-            <b>{v}</b>
+            <span className="ns-b">{v}</span>
             <span className="nm-filled"><Icon name="spark" size={12} />{lang === 'ar' ? 'من السيرة' : 'from CV'}</span>
           </div>
         ))}
@@ -463,7 +463,7 @@ export function TeamStage({ card1, card2 }: { card1: string; card2: string }) {
             <div className="nm-event" style={{ marginTop: 2 }}>
               <span className="nm-event-icon"><Icon name="calendar" size={14} /></span>
               <div style={{ flex: 1 }}>
-                <b>{lang === 'ar' ? 'مقابلة تقنية' : 'Technical interview'}</b>
+                <span className="ns-b">{lang === 'ar' ? 'مقابلة تقنية' : 'Technical interview'}</span>
                 <div className="nm-mini-sub">{lang === 'ar' ? 'الخميس · 11:00 ص' : 'Thursday · 11:00'}</div>
               </div>
             </div>

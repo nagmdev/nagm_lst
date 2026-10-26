@@ -185,7 +185,14 @@ for (const u of URLS) {
   check(h1.length === 1 && h1[0].textContent.trim().length > 3, where, `${h1.length} <h1> in the pre-rendered page`);
   const words = (body?.textContent ?? '').replace(/\s+/g, ' ').trim();
   check(words.length > 600, where, `only ${words.length} characters of text without JavaScript`);
-  for (const img of $$('#root img')) check(img.hasAttribute('alt'), where, `<img src="${img.getAttribute('src')}"> has no alt`);
+  // Some SEO tools count an empty alt as missing: every image here says what it is.
+  for (const img of $$('img')) check((img.getAttribute('alt') ?? '').trim().length > 0, where, `<img src="${img.getAttribute('src')}"> has no alt text`);
+  // Links crawlers should not follow: sign-in/sign-up (noindex) and any internal URL with parameters.
+  for (const a of $$('#root a[href]')) {
+    const h = a.getAttribute('href');
+    if ((/^\/(login|register|verify)/.test(h) || (h.startsWith('/') && h.includes('?'))) && !/\bnofollow\b/.test(a.getAttribute('rel') ?? '')) fail(where, `link ${h} should be rel="nofollow"`);
+  }
+  check($$('#root b, #root strong').length === 0, where, 'bold tags used for styling (use a class)');
 
   const footerLinks = $$('footer a').map((a) => a.getAttribute('href'));
   for (const s of SOCIAL) check(footerLinks.includes(s), where, `footer is missing ${s}`);

@@ -67,6 +67,16 @@ describe('home page', () => {
     expect(within(screen.getByRole('article', { name: 'Enterprise' })).getByRole('link', { name: /Contact sales/ })).toHaveAttribute('href', 'mailto:sales@nagm.io');
   });
 
+  it('keeps crawlers off sign-up and sign-in links, and on the pages worth indexing', () => {
+    renderHome();
+    for (const a of screen.getAllByRole('link')) {
+      const href = a.getAttribute('href') ?? '';
+      if (/^\/(register|login)/.test(href) || (href.startsWith('/') && href.includes('?'))) expect(a.getAttribute('rel'), href).toContain('nofollow');
+      if (/^\/en(\/(pricing|about|companies|job-seekers))?$/.test(href)) expect(a.getAttribute('rel') ?? '', href).not.toContain('nofollow');
+    }
+    expect(screen.getAllByRole('link').some((a) => a.getAttribute('href')?.startsWith('/register'))).toBe(true);
+  });
+
   it("links Nagm's four social accounts from the footer, in a new tab", () => {
     renderHome();
     const social = within(screen.getByRole('contentinfo')).getByRole('list', { name: 'Nagm on social media' });
@@ -210,5 +220,11 @@ describe('pricing page', () => {
     await renderPricing('/pricing?for=recruiters&market=EG');
     const pro = await screen.findByRole('article', { name: 'Pro' });
     expect(within(pro).getByTestId('plan-users')).toHaveTextContent(/1 user.*independent recruiter/);
+  });
+
+  it('opens on the audience the menu link names (#recruiters), without a query string', async () => {
+    localStorage.setItem('nagm_lang', 'en');
+    await renderPricing('/pricing?market=EG#recruiters');
+    expect(await screen.findByRole('tab', { name: /recruiter/i, selected: true })).toBeInTheDocument();
   });
 });
