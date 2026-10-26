@@ -36,6 +36,8 @@ export interface SiteText {
     why: Section & { cards: Card[] };
     plans: Section & { more: string };
     cta: Section & { cta1: string; cta2: string };
+    /** Plain answers about Nagm itself: what people (and AI assistants) ask first. */
+    faq: { title: string; items: { q: string; a: string }[] };
   };
   seekers: {
     hero: Section & { cta1: string; cta2: string; card1: { title: string; body: string }; card2: { title: string; body: string } };
@@ -211,6 +213,17 @@ const ar: SiteText = {
       title: ['فرصتك التالية تبدأ بوضوح.', 'وقرارك التوظيفي كذلك.'],
       body: 'ابنِ ملفك، وافهم توافقك، واستعد للتقديم. أو اجمع فريقك ومرشحيك في مساحة تساعدك على إدارة التوظيف خطوة بخطوة.',
       cta1: 'ابدأ رحلتك كمرشح', cta2: 'ابدأ التوظيف لشركتك',
+    },
+    faq: {
+      title: 'أسئلة شائعة عن نجم',
+      items: [
+        { q: 'ما هو نجم؟', a: 'نجم (Nagm) منصة توظيف عربية مدعومة بالذكاء الاصطناعي تجمع الباحثين عن عمل والشركات في مكان واحد: ملف مهني وإنشاء سيرة ذاتية وتحليل توافق مع الوظائف وتدريب على المقابلات للمرشحين، ونشر الوظائف وإدارة المتقدمين ومراحل التوظيف للشركات ومسؤولي التوظيف. تعمل بالعربية والإنجليزية على nagm.io وapp.nagm.io.' },
+        { q: 'هل نجم مجاني؟', a: 'يمكنك البدء مجانًا: هناك باقة مجانية للباحثين عن عمل، وأخرى لمسؤولي التوظيف، وأخرى للشركات. الباقات المدفوعة ترفع الحدود وتضيف مزايا، وتُدفع شهريًا أو سنويًا، والسنوي أوفر من 12 دفعة شهرية.' },
+        { q: 'ما هو فحص ATS في نجم؟', a: 'فحص ATS يحلّل سيرتك الذاتية بالذكاء الاصطناعي أمام متطلبات وظيفة محددة، ويعرض درجة توافقك وتوصيات واضحة لتحسين سيرتك قبل أن تتقدّم.' },
+        { q: 'ماذا يقدم نجم للشركات ومسؤولي التوظيف؟', a: 'نشر الوظائف، ومراجعة المتقدمين بتحليل توافق بالذكاء الاصطناعي، وإدارة مراحل التوظيف، وقاعدة مرشحين قابلة للبحث مع إعادة اكتشاف المتقدمين السابقين، والتعاون مع الفريق بالملاحظات والإشارات والصلاحيات، وتحليلات التوظيف والتصدير إلى Excel.' },
+        { q: 'في أي دول يعمل نجم وبأي عملة؟', a: 'تُعرض الأسعار بالجنيه المصري في مصر، وبالريال السعودي في السعودية، وبالدرهم الإماراتي في الإمارات، شاملة ضريبة القيمة المضافة، وبالدولار الأمريكي في باقي الدول. وفي السعودية والإمارات يمكن تقسيط الاشتراك السنوي عبر تمارا.' },
+        { q: 'هل بياناتي آمنة على نجم؟', a: 'نشرح في سياسة الخصوصية ما نجمعه ولماذا ومع من نشاركه، وحقك في الوصول إلى بياناتك وتصحيحها وحذفها. ويتم الدفع عبر بوابات دفع معتمدة، ولا تُحفظ بيانات بطاقتك على خوادم نجم.' },
+      ],
     },
   },
   seekers: {
@@ -631,6 +644,17 @@ const en: SiteText = {
       title: ['Your next opportunity starts with clarity.', 'So does your next hiring decision.'],
       body: 'Build your profile, understand your fit, and get ready to apply. Or bring your team and candidates into a workspace that helps you manage hiring step by step.',
       cta1: 'Start as a candidate', cta2: 'Start hiring for your company',
+    },
+    faq: {
+      title: 'Questions about Nagm',
+      items: [
+        { q: 'What is Nagm?', a: 'Nagm (نجم) is an Arabic-first, AI-powered hiring platform that brings job seekers and companies together: a professional profile, CV builder, job match analysis and interview practice for candidates, and job posting, applicant management and hiring stages for companies and recruiters. It works in Arabic and English at nagm.io and app.nagm.io.' },
+        { q: 'Is Nagm free?', a: 'You can start for free: there is a free plan for job seekers, one for recruiters and one for companies. Paid plans raise the limits and add features, billed monthly or yearly; yearly costs less than 12 monthly payments.' },
+        { q: "What is Nagm's ATS check?", a: 'The ATS check uses AI to analyse your CV against the requirements of a specific job, then shows your match score and clear recommendations to improve your CV before you apply.' },
+        { q: 'What does Nagm offer companies and recruiters?', a: 'Job posting, applicant review with AI match analysis, hiring stages, a searchable candidate base that resurfaces past applicants, team collaboration with notes, mentions and permissions, and hiring analytics with Excel export.' },
+        { q: 'Which countries and currencies does Nagm support?', a: 'Prices are shown in Egyptian pounds in Egypt, Saudi riyals in Saudi Arabia and UAE dirhams in the UAE, with VAT included, and in US dollars everywhere else. In Saudi Arabia and the UAE the yearly plan can be split into instalments with Tamara.' },
+        { q: 'Is my data safe on Nagm?', a: 'Our Privacy Policy explains what we collect and why, who we share it with, and your right to access, correct and delete your data. Payments go through certified payment gateways, and your card details are never stored on Nagm servers.' },
+      ],
     },
   },
   seekers: {

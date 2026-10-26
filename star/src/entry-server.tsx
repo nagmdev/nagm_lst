@@ -34,5 +34,7 @@ export function render(url: string, lang: Lang): string {
   );
 }
 
-export { headHtml, ALL_PAGES, pageUrl, SITE_URL } from './seo/site';
+export { headHtml, ALL_PAGES, pageUrl, pageCopy, SITE_URL } from './seo/site';
+export { llmsTxt } from './seo/llms';
+export { API_BASE } from './auth';
 export { pagePath } from './i18n/lang';

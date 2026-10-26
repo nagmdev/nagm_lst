@@ -36,6 +36,14 @@ function compile(source) {
 const fill = (dest, groups = {}) => dest.replace(/:([A-Za-z_]\w*)\*?/g, (_, k) => groups[k] ?? '');
 const redirects = (config.redirects ?? []).map((r) => ({ ...r, re: compile(r.source) }));
 const rewrites = (config.rewrites ?? []).map((r) => ({ ...r, re: compile(r.source) }));
+const headerRules = (config.headers ?? []).map((h) => ({ ...h, re: compile(h.source) }));
+
+/** The response headers vercel.json sets for `pathname`; later rules win. */
+export function headersFor(pathname) {
+  const out = {};
+  for (const rule of headerRules) if (rule.re.test(pathname)) for (const h of rule.headers) out[h.key] = h.value;
+  return out;
+}
 
 /**
  * @returns {{ status: number, location?: string, file?: string }}

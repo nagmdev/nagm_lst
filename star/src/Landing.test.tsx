@@ -27,7 +27,7 @@ describe('home page', () => {
 
   it('shows the English hero, nav and both entry points', () => {
     renderHome();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Show what you can do.Find the right fit.Take your next step.');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Show what you can do. Find the right fit. Take your next step.');
     expect(screen.getByRole('button', { name: 'Products' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Solutions' })).toBeInTheDocument();
     const jobs = screen.getAllByRole('link', { name: /^Jobs$/ });

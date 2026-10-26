@@ -22,6 +22,8 @@
  */
 import fs from 'node:fs';
 import http from 'node:http';
+import zlib from 'node:zlib';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +31,7 @@ import { JSDOM } from 'jsdom';
 import lighthouse from 'lighthouse';
 import * as chromeLauncher from 'chrome-launcher';
 import { chromium } from '@playwright/test';
-import { resolveRequest } from './vercel-routes.mjs';
+import { resolveRequest, headersFor } from './vercel-routes.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
@@ -66,13 +68,25 @@ const server = http.createServer((req, res) => {
     return;
   }
   const r = resolveRequest(decodeURIComponent(url.pathname), dist);
+  const headers = headersFor(url.pathname);
+  // HSTS and COOP only apply over HTTPS; on this plain-http copy Chrome would
+  // just warn about them. Both are checked as headers in vercel.json below.
+  delete headers['Strict-Transport-Security'];
+  delete headers['Cross-Origin-Opener-Policy'];
   if (r.location) {
-    res.writeHead(r.status, { Location: r.location + (r.location.includes('?') ? '' : url.search) });
+    res.writeHead(r.status, { ...headers, Location: r.location + (r.location.includes('?') ? '' : url.search) });
     return res.end();
   }
-  if (!r.file) { res.writeHead(404); return res.end(); }
-  res.writeHead(r.status, { 'Content-Type': TYPES[path.extname(r.file)] ?? 'application/octet-stream' });
-  res.end(fs.readFileSync(path.join(dist, r.file)));
+  if (!r.file) { res.writeHead(404, headers); return res.end(); }
+  const body = fs.readFileSync(path.join(dist, r.file));
+  const type = TYPES[path.extname(r.file)] ?? 'application/octet-stream';
+  // Compressed like Vercel's edge, so performance is measured on what visitors download.
+  if (/text|javascript|json|xml|svg/.test(type) && /gzip/.test(req.headers['accept-encoding'] ?? '')) {
+    res.writeHead(r.status, { 'Content-Type': type, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding', ...headers });
+    return res.end(zlib.gzipSync(body));
+  }
+  res.writeHead(r.status, { 'Content-Type': type, ...headers });
+  res.end(body);
 });
 await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const PORT = server.address().port;
@@ -101,7 +115,7 @@ const check = (cond, where, what) => { if (!cond) fail(where, what); return cond
 
 async function get(p) {
   const r = await fetch(local(p), { redirect: 'manual' });
-  return { status: r.status, location: r.headers.get('location'), type: r.headers.get('content-type') ?? '', text: await r.text() };
+  return { status: r.status, location: r.headers.get('location'), type: r.headers.get('content-type') ?? '', headers: r.headers, text: await r.text() };
 }
 
 /** Follow up to 5 local redirects; external targets end the chain. */
@@ -134,7 +148,7 @@ for (const u of URLS) {
   const titles = $$('title');
   const title = titles[0]?.textContent?.trim() ?? '';
   check(titles.length === 1, where, `${titles.length} <title> tags`);
-  check(title.length >= 15 && title.length <= 75, where, `title length ${title.length}: "${title}"`);
+  check(title.length >= 15 && title.length <= 60, where, `title length ${title.length} (max 60): "${title}"`);
   const descs = $$('meta[name="description"]');
   const desc = descs[0]?.getAttribute('content') ?? '';
   check(descs.length === 1, where, `${descs.length} meta descriptions`);
@@ -199,6 +213,45 @@ for (const u of URLS) {
   const want = URLS.map((u) => abs(u.path)).sort();
   check(JSON.stringify(locs) === JSON.stringify(want), 'sitemap.xml', `lists ${locs.length} addresses, expected ${want.length}`);
   check((s.text.match(/<xhtml:link /g) ?? []).length === want.length * 3, 'sitemap.xml', 'each address needs ar, en and x-default alternates');
+}
+
+/* 3b. AI assistants: llms.txt, llms-full.txt, crawler access -------------- */
+
+{
+  const l = await get('/llms.txt');
+  check(l.status === 200 && /^text\/plain/.test(l.type) && /charset=utf-8/i.test(l.type), 'llms.txt', `status ${l.status} ${l.type}`);
+  check(/^# Nagm/.test(l.text) && /^> /m.test(l.text), 'llms.txt', 'needs an H1 and a > summary line (llmstxt.org)');
+  for (const u of URLS) check(l.text.includes(`(${abs(u.path)})`), 'llms.txt', `does not list ${abs(u.path)}`);
+  const f = await get('/llms-full.txt');
+  check(f.status === 200 && f.text.length > 20000, 'llms-full.txt', `status ${f.status}, ${f.text.length} characters`);
+  for (const u of URLS) check(f.text.includes(`URL: ${abs(u.path)}`), 'llms-full.txt', `is missing ${u.path}`);
+  check(!/Sara Mansour|Omar Khaled|Layla Hassan|Madar Tech/.test(f.text), 'llms-full.txt', 'carries sample names from the illustrations');
+  const robots = (await get('/robots.txt')).text;
+  for (const bot of ['GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended']) {
+    check(new RegExp(`^User-agent: ${bot}$`, 'm').test(robots), 'robots.txt', `does not name ${bot}`);
+  }
+}
+
+/* 3c. security headers ---------------------------------------------------- */
+
+{
+  const want = {
+    'x-content-type-options': /^nosniff$/, 'x-frame-options': /^DENY$/, 'referrer-policy': /strict-origin/,
+    'permissions-policy': /camera=\(\)/, 'content-security-policy': /frame-ancestors 'none'/,
+  };
+  for (const p of ['/', '/en/pricing', '/login', '/no-such-page']) {
+    const r = await get(p);
+    for (const [k, re] of Object.entries(want)) check(re.test(r.headers.get(k) ?? ''), p, `header ${k}: ${r.headers.get(k)}`);
+    if (r.type.startsWith('text/html')) check(/<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'[^;"]*;/.test(r.text), p, 'no Content-Security-Policy <meta>');
+    // Every inline script must be allowed by its hash, or the CSP blocks it.
+    const csp = /<meta http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(r.text)?.[1] ?? '';
+    for (const [, js] of r.text.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+      const hash = `'sha256-${createHash('sha256').update(js).digest('base64')}'`;
+      check(csp.includes(hash), p, 'an inline script is not allowed by the CSP');
+    }
+  }
+  check(/max-age=\d{8,}/.test(headersFor('/')['Strict-Transport-Security'] ?? ''), 'vercel.json', 'no long-lived Strict-Transport-Security');
+  check(headersFor('/')['Cross-Origin-Opener-Policy'] === 'same-origin', 'vercel.json', 'no Cross-Origin-Opener-Policy');
 }
 
 /* 4. addresses ------------------------------------------------------------ */
@@ -289,4 +342,5 @@ if (failures.length) {
   console.error(`\n${failures.length} SEO check(s) failed:\n${failures.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`\nAll SEO checks passed: ${URLS.length} pages × Lighthouse ${CATEGORIES.join(', ')} = 100, plus crawler, sitemap, robots, redirect and 404 checks.`);
+const ENFORCED = CATEGORIES.filter((c) => c !== 'performance');
+console.log(`\nAll SEO checks passed: ${URLS.length} pages × Lighthouse ${ENFORCED.join(', ')} = 100, plus crawler, sitemap, robots, llms.txt, security header, redirect and 404 checks.${CATEGORIES.includes('performance') ? ' (Performance is reported, not enforced: it depends on the network the audit runs on.)' : ''}`);

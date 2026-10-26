@@ -375,8 +375,10 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 export function Lines({ lines, as: Tag = 'h2', className = 'ns-h2' }: { lines: string[]; as?: 'h1' | 'h2' | 'h3' | 'p'; className?: string }) {
   return (
     <Tag className={className}>
+      {/* A space between the lines, so the heading's text (what search engines
+          and screen readers get) reads "…do. Find…", not "…do.Find…". */}
       {lines.map((l, i) => (
-        <span key={i} style={{ display: 'block' }}>{l}</span>
+        <span key={i} style={{ display: 'block' }}>{i > 0 ? ' ' : ''}{l}</span>
       ))}
     </Tag>
   );

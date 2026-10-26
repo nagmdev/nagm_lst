@@ -8,7 +8,7 @@ describe('what search engines read about each page', () => {
   it.each(ALL_PAGES)('$page ($lang): a title and description that fit in a search result', ({ page, lang }) => {
     const { title, description } = pageCopy(page, lang);
     expect(title.length).toBeGreaterThanOrEqual(15);
-    expect(title.length).toBeLessThanOrEqual(75);
+    expect(title.length).toBeLessThanOrEqual(60);
     expect(description.length).toBeGreaterThanOrEqual(70);
     expect(description.length).toBeLessThanOrEqual(160);
   });
@@ -47,6 +47,21 @@ describe('what search engines read about each page', () => {
       'https://x.com/Nagm_2025',
     ]);
     expect(ld['@graph'].map((n: { '@type': string }) => n['@type'])).toEqual(['Organization', 'WebSite', 'AboutPage', 'BreadcrumbList']);
+    expect(org.areaServed.map((c: { name: string }) => c.name)).toEqual(['EG', 'SA', 'AE']);
+  });
+
+  it.each(['ar', 'en'] as const)('marks up the visible questions on the home and pricing pages as an FAQPage (%s)', (lang) => {
+    for (const page of ['/', '/pricing'] as const) {
+      const ld = JSON.parse(headTags(page, lang).find((t) => t.tag === 'script')!.text!);
+      const faq = ld['@graph'].find((n: { '@type': string }) => n['@type'] === 'FAQPage');
+      expect(faq.mainEntity.length).toBeGreaterThanOrEqual(5);
+      for (const q of faq.mainEntity) {
+        expect(q['@type']).toBe('Question');
+        expect(q.acceptedAnswer.text.length).toBeGreaterThan(40);
+      }
+    }
+    const home = JSON.parse(headTags('/', lang).find((t) => t.tag === 'script')!.text!);
+    expect(home['@graph'].some((n: { '@type': string }) => n['@type'] === 'WebApplication')).toBe(true);
   });
 
   it('writes head HTML a quote or a closing tag cannot break out of', () => {
