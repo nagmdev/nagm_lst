@@ -1,6 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import Root from './Root';
+// The site's fonts, served from nagm.io itself: no third-party request before
+// the first paint. Only the weights the design uses; each splits into unicode
+// ranges, so an Arabic page never downloads the Latin files it doesn't need.
+import '@fontsource/noto-kufi-arabic/500.css';
+import '@fontsource/noto-kufi-arabic/700.css';
+import '@fontsource/ibm-plex-sans-arabic/400.css';
+import '@fontsource/ibm-plex-sans-arabic/500.css';
+import '@fontsource/ibm-plex-sans-arabic/600.css';
+import '@fontsource/ibm-plex-sans-arabic/700.css';
+import '@fontsource/plus-jakarta-sans/500.css';
+import '@fontsource/plus-jakarta-sans/600.css';
+import '@fontsource/plus-jakarta-sans/700.css';
+import '@fontsource/plus-jakarta-sans/800.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
 import './landing.css';
 
 // nagm.io: marketing landing + pre-auth flow (login/register/verify) that hands

@@ -1,6 +1,7 @@
 import type { Lang, PagePath } from '../i18n/lang';
 import { pagePath, PAGE_PATHS } from '../i18n/lang';
 import { LEGAL } from '../i18n/legalText';
+import { siteText } from '../i18n/siteText';
 
 /**
  * Everything a search engine or a link preview reads about nagm.io: each
@@ -27,59 +28,60 @@ const X_HANDLE = '@Nagm_2025';
 interface PageCopy { title: string; description: string }
 
 const legal = (doc: 'terms' | 'privacy', lang: Lang, description: string): PageCopy => ({
-  title: `${LEGAL[doc][lang].title} — ${lang === 'ar' ? 'نجم' : 'Nagm'}`,
+  title: `${LEGAL[doc][lang].title} | ${lang === 'ar' ? 'نجم' : 'Nagm'}`,
   description,
 });
 
-// Descriptions stay under ~155 characters: search results cut anything longer.
+// Titles stay within 60 characters and lead with what people search for;
+// descriptions stay under ~155. Search results cut anything longer.
 const COPY: Record<PagePath, Record<Lang, PageCopy>> = {
   '/': {
     ar: {
-      title: 'نجم — أظهر قدراتك، اكتشف الأنسب، واتخذ خطوتك التالية',
+      title: 'نجم | منصة توظيف بالذكاء الاصطناعي للباحثين عن عمل والشركات',
       description: 'نجم منصة توظيف عربية بالذكاء الاصطناعي: ملف مهني وسيرة ذاتية وتحليل توافق للباحثين عن عمل، وأدوات توظيف للشركات في مكان واحد.',
     },
     en: {
-      title: 'Nagm — Show what you can do. Find the right fit.',
+      title: 'Nagm | AI hiring platform for job seekers and companies',
       description: 'Nagm is an AI-powered hiring platform: a profile, CV builder and job match analysis for job seekers, plus hiring tools for companies.',
     },
   },
   '/job-seekers': {
     ar: {
-      title: 'نجم للباحثين عن عمل — ملف مهني، سيرة ذاتية، تحليل توافق',
+      title: 'نجم للباحثين عن عمل | سيرة ذاتية وفحص ATS ووظائف',
       description: 'أنشئ ملفك المهني وسيرتك الذاتية مع نجم، وحلّل توافقك مع متطلبات الوظائف، وتدرّب على المقابلات، وتابع طلباتك في مكان واحد.',
     },
     en: {
-      title: 'Nagm for job seekers — profile, CV, match analysis',
+      title: 'Nagm for job seekers | CV builder, ATS check and jobs',
       description: 'Build your profile and CV with Nagm, see how well you match a job, practise interviews and track every application in one place.',
     },
   },
   '/companies': {
     ar: {
-      title: 'نجم للشركات ومسؤولي التوظيف — وظائفك ومرشحوك وفريقك في مكان واحد',
+      title: 'نجم للشركات | نظام توظيف ATS وفرز المرشحين بالذكاء الاصطناعي',
       description: 'انشر وظائفك مع نجم، وراجع المرشحين بتحليل توافق بالذكاء الاصطناعي، وأدِر مراحل التوظيف وفريقك وقاعدة مرشحيك في مكان واحد.',
     },
     en: {
-      title: 'Nagm for companies and recruiters — jobs, candidates and team in one place',
+      title: 'Nagm for companies | AI applicant tracking and hiring',
       description: 'Post jobs with Nagm, review candidates with AI match analysis, and run hiring stages, your team and your candidate base in one place.',
     },
   },
   '/pricing': {
     ar: {
-      title: 'أسعار نجم — باقات للباحثين عن عمل ومسؤولي التوظيف والشركات',
+      title: 'أسعار نجم | باقات للباحثين عن عمل والشركات',
       description: 'باقات نجم للباحثين عن عمل ومسؤولي التوظيف والشركات: ابدأ مجانًا، ثم ادفع شهريًا أو سنويًا بعملتك في مصر والسعودية والإمارات.',
     },
     en: {
-      title: 'Nagm pricing — plans for job seekers, recruiters and companies',
+      title: 'Nagm pricing | Plans for job seekers and companies',
       description: 'Nagm plans for job seekers, recruiters and companies: start free, then pay monthly or yearly in your currency in Egypt, Saudi Arabia or the UAE.',
     },
   },
   '/about': {
     ar: {
-      title: 'عن نجم — رسالتنا وقصتنا',
+      title: 'عن نجم | منصة التوظيف العربية بالذكاء الاصطناعي',
       description: 'تعرّف على نجم: منصة توظيف عربية تساعد الباحثين عن عمل على إظهار قدراتهم، وتساعد الشركات على الوصول إلى المرشحين الأنسب.',
     },
     en: {
-      title: 'About Nagm — our mission and story',
+      title: 'About Nagm | The Arabic-first AI hiring platform',
       description: 'About Nagm: an Arabic-first hiring platform that helps job seekers show what they can do and helps companies find the right candidates.',
     },
   },
@@ -110,6 +112,12 @@ export const ALL_PAGES: { page: PagePath; lang: Lang }[] = PAGE_PATHS.flatMap((p
 export interface HeadTag { tag: 'meta' | 'link' | 'script'; attrs: Record<string, string>; text?: string }
 
 const BREADCRUMB_HOME: Record<Lang, string> = { ar: 'الرئيسية', en: 'Home' };
+
+/** Pages whose visible questions and answers are also marked up as an FAQPage. */
+const FAQ: Partial<Record<PagePath, (lang: Lang) => { q: string; a: string }[]>> = {
+  '/': (lang) => siteText[lang].home.faq.items,
+  '/pricing': (lang) => siteText[lang].pricing.faq.items,
+};
 const PAGE_TYPE: Partial<Record<PagePath, string>> = { '/about': 'AboutPage' };
 
 function structuredData(page: PagePath, lang: Lang, copy: PageCopy) {
@@ -120,7 +128,12 @@ function structuredData(page: PagePath, lang: Lang, copy: PageCopy) {
     alternateName: 'نجم',
     url: `${SITE_URL}/`,
     logo: { '@type': 'ImageObject', url: `${SITE_URL}/nagm-mark.png` },
+    description: lang === 'ar'
+      ? 'نجم منصة توظيف عربية مدعومة بالذكاء الاصطناعي للباحثين عن عمل والشركات ومسؤولي التوظيف.'
+      : 'Nagm is an Arabic-first, AI-powered hiring platform for job seekers, companies and recruiters.',
     email: 'support@nagm.io',
+    areaServed: ['EG', 'SA', 'AE'].map((c) => ({ '@type': 'Country', name: c })),
+    knowsAbout: ['Recruitment', 'Applicant tracking system', 'CV writing', 'ATS resume check', 'Job search', 'Interview preparation'],
     sameAs: SOCIAL.map((s) => s.url),
     contactPoint: [
       { '@type': 'ContactPoint', contactType: 'customer support', email: 'support@nagm.io', availableLanguage: ['Arabic', 'English'] },
@@ -149,13 +162,39 @@ function structuredData(page: PagePath, lang: Lang, copy: PageCopy) {
     primaryImageOfPage: { '@type': 'ImageObject', url: `${SITE_URL}/og/nagm-${lang}.png` },
   };
   const graph: Record<string, unknown>[] = [org, website, webpage];
+  const faq = FAQ[page]?.(lang);
+  if (faq) {
+    graph.push({
+      '@type': 'FAQPage',
+      '@id': `${url}#faq`,
+      inLanguage: lang,
+      isPartOf: { '@id': webpage['@id'] },
+      mainEntity: faq.map((q) => ({ '@type': 'Question', name: q.q, acceptedAnswer: { '@type': 'Answer', text: q.a } })),
+    });
+  }
+  if (page === '/') {
+    // The product itself, for assistants and search engines comparing tools.
+    graph.push({
+      '@type': 'WebApplication',
+      '@id': `${SITE_URL}/#app`,
+      name: lang === 'ar' ? 'نجم' : 'Nagm',
+      url: 'https://app.nagm.io/',
+      applicationCategory: 'BusinessApplication',
+      applicationSubCategory: lang === 'ar' ? 'منصة توظيف ونظام تتبع المتقدمين (ATS)' : 'Hiring platform and applicant tracking system (ATS)',
+      operatingSystem: 'Web',
+      inLanguage: ['ar', 'en'],
+      description: copy.description,
+      publisher: { '@id': org['@id'] },
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: lang === 'ar' ? 'باقات مجانية للباحثين عن عمل ومسؤولي التوظيف والشركات' : 'Free plans for job seekers, recruiters and companies', url: pageUrl('/pricing', lang) },
+    });
+  }
   if (page !== '/') {
     const crumbs = {
       '@type': 'BreadcrumbList',
       '@id': `${url}#breadcrumb`,
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: BREADCRUMB_HOME[lang], item: pageUrl('/', lang) },
-        { '@type': 'ListItem', position: 2, name: copy.title.split(' — ')[0], item: url },
+        { '@type': 'ListItem', position: 2, name: copy.title.split(' | ')[0], item: url },
       ],
     };
     webpage.breadcrumb = { '@id': crumbs['@id'] };

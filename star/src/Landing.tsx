@@ -93,6 +93,18 @@ export default function Landing() {
       </Section>
 
       {/* 8 — closing */}
+      <Section id="faq">
+        <SectionHead copy={{ title: [h.faq.title] }} center />
+        <div className="ns-faq">
+          {h.faq.items.map((q) => (
+            <details key={q.q}>
+              <summary>{q.q}<Icon name="plus" size={18} /></summary>
+              <p>{q.a}</p>
+            </details>
+          ))}
+        </div>
+      </Section>
+
       <CtaBand copy={h.cta} primary={{ to: links.register('candidate') }} secondary={{ to: links.register('company') }} />
     </Shell>
   );

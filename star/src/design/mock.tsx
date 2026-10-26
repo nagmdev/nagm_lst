@@ -419,7 +419,10 @@ export function ScaleBox({ width, height, children, max = 1 }: { width: number; 
   return (
     // The height comes from the aspect ratio, so a pre-rendered page already has
     // the right height before the scale is measured: nothing below it moves.
-    <div ref={ref} style={{ width: '100%', maxWidth: width * max, aspectRatio: `${width} / ${height}`, position: 'relative' }}>
+    // Clipped, because until the scale is measured the mockup is at full design
+    // width: on a phone it would overflow, and on a right-to-left page overflow
+    // pushes the whole page sideways. The margin keeps card shadows visible.
+    <div ref={ref} style={{ width: '100%', maxWidth: width * max, aspectRatio: `${width} / ${height}`, position: 'relative', overflow: 'clip', overflowClipMargin: 24 }}>
       <div style={{ width, height, position: 'absolute', top: 0, insetInlineStart: 0, transform: `scale(${scale})`, transformOrigin: lang === 'ar' ? 'top right' : 'top left' }}>
         {children}
       </div>

@@ -8,37 +8,11 @@
     <title>نجم — أظهر قدراتك، اكتشف الأنسب، واتخذ خطوتك التالية</title>
     <meta name="description" content="نجم منصة توظيف عربية بالذكاء الاصطناعي: ملف مهني وسيرة ذاتية وتحليل توافق للباحثين عن عمل، وأدوات توظيف للشركات في مكان واحد." />
     <!-- seo:end -->
-    <script>
-      // The saved theme before first paint, so a dark-mode visitor never sees a white flash.
-      try {
-        var t = localStorage.getItem('nagm_theme');
-        if (t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
-      } catch (e) { /* storage blocked */ }
-    </script>
-    <link rel="icon" type="image/png" href="/nagm-mark.png" />
-    <link rel="apple-touch-icon" href="/nagm-mark.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <script>
-      // Prevent VM errors from affecting the application
-      window.addEventListener('error', function(e) {
-        // Ignore VM errors (they come from browser extensions or console commands)
-        if (e.filename && e.filename.includes('VM')) {
-          e.preventDefault();
-          return false;
-        }
-      });
-      
-      // Catch any undefined variable errors
-      window.addEventListener('unhandledrejection', function(e) {
-        console.warn('Unhandled promise rejection:', e.reason);
-        e.preventDefault();
-      });
-    </script>
+    <script src="/boot.js"></script>
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
   </head>
   <body>
     <div id="root"></div>
