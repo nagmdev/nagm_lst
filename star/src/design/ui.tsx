@@ -109,7 +109,7 @@ export function Logo({ size = 30 }: { size?: number }) {
   const lang = useLang();
   return (
     <Link to="/" aria-label={lang === 'ar' ? 'نجم — الرئيسية' : 'Nagm — home'} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--ink)' }}>
-      <img src="/nagm-mark.png" width={size} height={size} alt="" style={{ display: 'block' }} />
+      <img src="/nagm-mark.png" width={size} height={size} alt={lang === 'ar' ? 'شعار نجم' : 'Nagm logo'} style={{ display: 'block' }} />
       <span style={{ fontFamily: 'var(--fontDisplay)', fontWeight: 800, fontSize: 20, letterSpacing: lang === 'ar' ? 0 : '-0.02em' }}>{lang === 'ar' ? 'نجم' : 'Nagm'}</span>
     </Link>
   );
@@ -126,7 +126,7 @@ const PRODUCT_ICON: Record<string, IconName> = {
 const MenuItem = ({ to, icon, title, sub, tone }: { to: string; icon: IconName; title: string; sub: string; tone?: 'cyan' }) => (
   <Link to={to} className={`ns-mitem${tone ? ` ns-mitem--${tone}` : ''}`}>
     <span className="ns-mitem-icon"><Icon name={icon} size={20} /></span>
-    <span className="ns-mitem-text"><b>{title}</b><span>{sub}</span></span>
+    <span className="ns-mitem-text"><span className="ns-b">{title}</span><span>{sub}</span></span>
   </Link>
 );
 
@@ -152,7 +152,7 @@ function ProductsPanel() {
       <aside className="ns-mega-feature">
         <span className="ns-mega-kicker"><Icon name="spark" size={14} />{t.featured.eyebrow}</span>
         <div className="ns-mega-visual" aria-hidden="true"><ScaleBox width={300} height={146}><MatchCard compact /></ScaleBox></div>
-        <b className="ns-mega-ftitle">{t.featured.title}</b>
+        <span className="ns-mega-ftitle ns-b">{t.featured.title}</span>
         <p>{t.featured.body}</p>
         <div className="ns-mega-factions">
           <Link to={links.register('candidate')} className="ns-btn ns-btn--primary ns-btn--sm">{t.featured.cta}<Arrow size={15} /></Link>
@@ -170,7 +170,7 @@ function SolutionsPanel() {
     <Link to={to} className={`ns-scard${tone ? ` ns-scard--${tone}` : ''}`}>
       <div className="ns-scard-visual" aria-hidden="true">{visual}</div>
       <div className="ns-scard-copy">
-        <b>{title}</b>
+        <span className="ns-b">{title}</span>
         <span>{body}</span>
         <span className="ns-scard-cta">{cta}<Arrow size={14} /></span>
       </div>
@@ -184,9 +184,9 @@ function SolutionsPanel() {
         visual={<ScaleBox width={470} height={210}><PipelineBoard compact /></ScaleBox>} />
       <aside className="ns-mega-side">
         <span className="ns-mega-sidehead">{t.nav.pricing}</span>
-        <Link to="/pricing?for=seekers">{t.pricing.audience.seekers}<Arrow size={14} /></Link>
-        <Link to="/pricing?for=recruiters">{t.pricing.audience.recruiters}<Arrow size={14} /></Link>
-        <Link to="/pricing?for=companies">{t.pricing.audience.companies}<Arrow size={14} /></Link>
+        <Link to="/pricing#seekers">{t.pricing.audience.seekers}<Arrow size={14} /></Link>
+        <Link to="/pricing#recruiters">{t.pricing.audience.recruiters}<Arrow size={14} /></Link>
+        <Link to="/pricing#companies">{t.pricing.audience.companies}<Arrow size={14} /></Link>
         <span className="ns-mega-sidehead" style={{ marginTop: 14 }}>{n.menuFooter.text}</span>
         <Link to={links.register()}>{n.menuFooter.start}<Arrow size={14} /></Link>
       </aside>
@@ -453,7 +453,7 @@ export function Strip({ items, icons }: { items: { title: string; body: string }
       {items.map((it, i) => (
         <div key={it.title} className="ns-strip-item">
           <span className={`ns-icon-tile ${tones[i % tones.length]}`} style={{ width: 40, height: 40, borderRadius: 12 }}><Icon name={icons[i]} size={20} /></span>
-          <b>{it.title}</b>
+          <span className="ns-b">{it.title}</span>
           <span>{it.body}</span>
         </div>
       ))}
@@ -491,7 +491,7 @@ export function Float({ title, body, tags, style, icon = 'profile', tone }: { ti
     <div className="ns-float" style={style}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span className={`ns-icon-tile${tone ? ` ns-icon-tile--${tone}` : ''}`} style={{ width: 36, height: 36, borderRadius: 10 }}><Icon name={icon} size={18} /></span>
-        <b>{title}</b>
+        <span className="ns-b">{title}</span>
       </div>
       <p>{body}</p>
       {tags && <div className="ns-tags">{tags.map((x) => <span key={x} className="ns-tag ns-tag--brand">{x}</span>)}</div>}

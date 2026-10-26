@@ -58,7 +58,7 @@ export default function AboutPage() {
                 <div key={c.city} className="ns-card" style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '16px 18px' }}>
                   <span className={`ns-icon-tile ${['', 'ns-icon-tile--cyan', 'ns-icon-tile--violet'][i]}`} style={{ width: 40, height: 40, borderRadius: 12 }}><Icon name="pin" size={20} /></span>
                   <div>
-                    <b style={{ fontFamily: 'var(--fontDisplay)', color: 'var(--ink)', display: 'block' }}>{c.city}</b>
+                    <span className="ns-b" style={{ fontFamily: 'var(--fontDisplay)', color: 'var(--ink)', display: 'block' }}>{c.city}</span>
                     <span className="ns-body" style={{ fontSize: 14 }}>{c.role}</span>
                   </div>
                 </div>

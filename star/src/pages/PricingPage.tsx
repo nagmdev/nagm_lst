@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useClientValue } from '../utils/useClientValue';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useLang } from '../i18n/lang';
 import { useSiteText } from '../i18n/siteText';
 import { Shell, Section, SectionHead, Lines, Eyebrow, Note, usePageMeta, links } from '../design/ui';
@@ -19,6 +19,7 @@ import {
  */
 
 const AUDIENCES: Audience[] = ['CANDIDATE', 'RECRUITER', 'COMPANY'];
+const AUDIENCE_KEYS: Record<string, Audience> = { seekers: 'CANDIDATE', recruiters: 'RECRUITER', companies: 'COMPANY' };
 
 export default function PricingPage() {
   const t = useSiteText();
@@ -32,8 +33,13 @@ export default function PricingPage() {
   const guessed = useClientValue<Market>(guessMarket, 'INTL');
   const [picked, setMarket] = useState<Market | null>(MARKETS.includes(paramMarket) ? paramMarket : null);
   const market = picked ?? guessed;
-  const paramAud = (params.get('for') || '').toLowerCase();
-  const [audience, setAudience] = useState<Audience>(paramAud === 'companies' ? 'COMPANY' : paramAud === 'recruiters' ? 'RECRUITER' : paramAud === 'seekers' ? 'CANDIDATE' : 'COMPANY');
+  // Who the prices are for: #seekers / #recruiters / #companies (the menu's
+  // links), or the older ?for=… . Applied after the first render, so the page
+  // pre-rendered for companies hydrates cleanly and then switches.
+  const { hash } = useLocation();
+  const asked = AUDIENCE_KEYS[hash.slice(1).toLowerCase()] ?? AUDIENCE_KEYS[(params.get('for') || '').toLowerCase()];
+  const [audience, setAudience] = useState<Audience>('COMPANY');
+  useEffect(() => { if (asked) setAudience(asked); }, [asked]);
   const [interval, setInterval] = useState<Interval>('YEAR');
   const [cat, setCat] = useState<Catalog>(() => staticCatalog(market));
 
@@ -127,7 +133,7 @@ export default function PricingPage() {
                   <div key={a} className="ns-card ns-who-card" data-active={audience === a ? 'true' : undefined}>
                     <div className="ns-who-head">
                       <span className={`ns-icon-tile${a === 'COMPANY' ? ' ns-icon-tile--cyan' : ''}`}><Icon name={a === 'RECRUITER' ? 'user' : 'team'} /></span>
-                      <b>{w.title}</b>
+                      <span className="ns-b">{w.title}</span>
                       <span className={`ns-tag${a === 'COMPANY' ? ' ns-tag--brand' : ''}`}>{w.tag}</span>
                     </div>
                     <div className="ns-who-users">{users}</div>
@@ -154,7 +160,7 @@ export default function PricingPage() {
           <div className="ns-card ns-card--accent" style={{ marginTop: 22, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="ns-icon-tile ns-icon-tile--grad ns-icon-tile--lg" style={{ ['--icAccent' as string]: 'rgba(255,255,255,.75)' }}><Icon name="instalments" size={26} /></span>
             <div style={{ flex: 1, minWidth: 240 }}>
-              <b style={{ fontFamily: 'var(--fontDisplay)', color: 'var(--ink)', display: 'block', marginBottom: 4 }}>{p.tamara.title}</b>
+              <span className="ns-b" style={{ fontFamily: 'var(--fontDisplay)', color: 'var(--ink)', display: 'block', marginBottom: 4 }}>{p.tamara.title}</span>
               <span className="ns-body" style={{ fontSize: 14 }}>{p.tamara.body}</span>
             </div>
             <span className="ns-tag ns-tag--cyan">{p.tamara.badge}</span>
@@ -187,7 +193,7 @@ export default function PricingPage() {
             {p.addons.items.map((a, i) => (
               <div key={a.name} className="ns-card ns-card--lift" style={{ display: 'grid', gap: 10, alignContent: 'start' }}>
                 <span className={`ns-icon-tile ${['', 'ns-icon-tile--cyan', 'ns-icon-tile--violet', ''][i]}`}><Icon name={(['star', 'seat', 'spark', 'building'] as IconName[])[i]} /></span>
-                <b style={{ fontFamily: 'var(--fontDisplay)', color: 'var(--ink)' }}>{a.name}</b>
+                <span className="ns-b" style={{ fontFamily: 'var(--fontDisplay)', color: 'var(--ink)' }}>{a.name}</span>
                 <span className="ns-body" style={{ fontSize: 14 }}>{a.body}</span>
               </div>
             ))}

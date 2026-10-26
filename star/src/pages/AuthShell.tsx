@@ -36,7 +36,7 @@ const AuthShell: React.FC<{ title: string; subtitle: React.ReactNode; children: 
         <div style={{ position: 'absolute', top: -80, left: isAr ? 'auto' : '20%', right: isAr ? '20%' : 'auto', width: 360, height: 360, borderRadius: '50%', background: 'var(--grad)', opacity: 0.22, filter: 'blur(70px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 0, color: '#8B7BFF' }}><ChevronField opacity={0.07} rows={5} cols={4} /></div>
         <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: '#fff', position: 'relative' }}>
-          <img src="/nagm-mark.png" width={36} height={36} alt="" style={{ display: 'block' }} />
+          <img src="/nagm-mark.png" width={36} height={36} alt={isAr ? 'شعار نجم' : 'Nagm logo'} style={{ display: 'block' }} />
           <span style={{ fontFamily: 'var(--fontDisplay)', fontSize: 22, fontWeight: 800 }}>{isAr ? 'نجم' : 'Nagm'}</span>
         </a>
         <div style={{ position: 'relative', maxWidth: 440, opacity: 0.92, marginInline: 'auto', width: '100%' }} aria-hidden="true">

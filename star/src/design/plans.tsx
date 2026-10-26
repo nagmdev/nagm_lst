@@ -36,7 +36,7 @@ function Users({ plan, cat, quote }: { plan: PlanDef; cat: Catalog; quote: boole
     <div className="ns-plan-users" data-testid="plan-users" data-one={one ? 'true' : undefined}>
       <span className="ns-plan-users-icon" aria-hidden="true"><Icon name={one ? 'user' : 'team'} size={20} /></span>
       <span>
-        <b>{big}</b>
+        <span className="ns-b">{big}</span>
         <span>{sub}</span>
       </span>
     </div>
@@ -74,7 +74,7 @@ export function PlanCard({ plan, cat, interval, compact, tag, wide }: { plan: Pl
   return (
     <article className={`ns-card ns-plan${plan.featured && !tag ? ' ns-plan--featured' : ''}${wide ? ' ns-plan--wide' : ''}${promo ? ' ns-plan--promo' : ''}${plan.audience !== 'CANDIDATE' && !compact ? ' ns-plan--users' : ''}`} aria-label={plan.name[lang]}>
       <div className="ns-plan-name">
-        <b>{plan.name[lang]}</b>
+        <span className="ns-b">{plan.name[lang]}</span>
         {promo ? (
           <span className="ns-tag ns-tag--ok" data-testid="plan-promo">
             <Icon name="spark" size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />
