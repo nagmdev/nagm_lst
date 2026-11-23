@@ -54,13 +54,13 @@ const SCRIPT_HASHES = [BOOT_HASH, ...TEMPLATE_HASHES].join(' ');
 const apiOrigin = /^https?:/.test(API_BASE) ? new URL(API_BASE).origin : '';
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' ${SCRIPT_HASHES} https://www.googletagmanager.com https://*.googletagmanager.com https://tagmanager.google.com https://www.google-analytics.com https://*.google-analytics.com https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com https://www.google.com`,
+  `script-src 'self' ${SCRIPT_HASHES} https://www.googletagmanager.com https://*.googletagmanager.com https://tagmanager.google.com https://www.google-analytics.com https://*.google-analytics.com https://*.doubleclick.net https://*.googleadservices.com https://*.googlesyndication.com https://www.google.com`,
   // React writes style="" attributes; allow Google Tag Manager / Tag Assistant preview styles too.
   "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com",
   "img-src 'self' data: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
-  `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''} https://www.googletagmanager.com https://*.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com https://www.google.com`,
-  "frame-src 'self' https://www.googletagmanager.com https://td.doubleclick.net https://www.google.com",
+  `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''} https://www.googletagmanager.com https://*.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.doubleclick.net https://*.googleadservices.com https://*.googlesyndication.com https://www.google.com https://www.google.com.eg https://www.google.com.sa https://www.google.ae https://www.google.co.uk`,
+  "frame-src 'self' https://www.googletagmanager.com https://*.doubleclick.net https://www.google.com",
   "manifest-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
