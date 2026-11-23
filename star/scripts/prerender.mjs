@@ -42,20 +42,25 @@ if (!SEO_BLOCK.test(template) || !template.includes('<div id="root"></div>')) {
 }
 
 // boot.js (theme before first paint) goes inline: one request fewer before the
-// page can draw. The CSP allows exactly that script, by its hash.
+// page can draw. The CSP allows every inline script (boot.js + GTM bootstrap)
+// by its SHA-256 hash.
+const hashScript = (js) => `'sha256-${createHash('sha256').update(js).digest('base64')}'`;
 const BOOT = fs.readFileSync(path.join(dist, 'boot.js'), 'utf8');
-const BOOT_HASH = `'sha256-${createHash('sha256').update(BOOT).digest('base64')}'`;
+const BOOT_HASH = hashScript(BOOT);
+const TEMPLATE_HASHES = [...template.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(([, js]) => hashScript(js));
+const SCRIPT_HASHES = [BOOT_HASH, ...TEMPLATE_HASHES].join(' ');
 
 // The API origin baked into this build (VITE_BACKEND_API), or same-origin for a relative one.
 const apiOrigin = /^https?:/.test(API_BASE) ? new URL(API_BASE).origin : '';
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' ${BOOT_HASH}`,
-  // React writes style="" attributes; no inline <style> or script is needed.
-  "style-src 'self' 'unsafe-inline'",
+  `script-src 'self' ${SCRIPT_HASHES} https://www.googletagmanager.com https://*.googletagmanager.com https://tagmanager.google.com https://www.google-analytics.com https://*.google-analytics.com https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com https://www.google.com`,
+  // React writes style="" attributes; allow Google Tag Manager / Tag Assistant preview styles too.
+  "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com",
   "img-src 'self' data: https:",
-  "font-src 'self' data:",
-  `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''}`,
+  "font-src 'self' https://fonts.gstatic.com data:",
+  `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''} https://www.googletagmanager.com https://*.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com https://www.google.com`,
+  "frame-src 'self' https://www.googletagmanager.com https://td.doubleclick.net https://www.google.com",
   "manifest-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
