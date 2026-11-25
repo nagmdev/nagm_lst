@@ -13,3 +13,9 @@ try {
 window.addEventListener('error', function (e) {
   if (e.filename && e.filename.indexOf('VM') !== -1) { e.preventDefault(); return false; }
 });
+
+// Google Tag Manager's dataLayer, before gtm.js (loaded async right after) reads it.
+window.dataLayer = window.dataLayer || [];
+window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+window.gtag('js', new Date());
+window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
