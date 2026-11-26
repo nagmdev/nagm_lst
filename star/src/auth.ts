@@ -79,6 +79,38 @@ export function planReturnTo(params: URLSearchParams): string | null {
   return `${APP_ORIGIN}/billing?plan=${encodeURIComponent(plan)}&interval=${interval}`;
 }
 
+/**
+ * The app marks the browser as signed in with a cookie shared with nagm.io
+ * (`nagm_signed_in=1`, no token in it). Sheet #99: "stay signed in for 30
+ * days" looked broken because this sign-in page could not see the app's
+ * session and always showed the form again. With the mark, opening the
+ * sign-in page goes straight back into the app.
+ *
+ * Returns the app URL to go to, or null to show the form:
+ * - no mark;
+ * - signing in to ANOTHER account (`add_account`, or an invitation that names
+ *   the address to use with `email`);
+ * - already sent to the app in the last minute: the mark outlived the session
+ *   (the app sent the visitor back here), so going again would loop.
+ */
+export const SITE_SESSION_COOKIE = 'nagm_signed_in';
+const BOUNCE_KEY = 'nagm.signedInBounce';
+const BOUNCE_WINDOW_MS = 60_000;
+
+export function signedInAppUrl(params: URLSearchParams, now: number = Date.now()): string | null {
+  if (params.has('add_account') || params.has('email')) return null;
+  const marked = document.cookie.split(';').some((c) => c.trim() === `${SITE_SESSION_COOKIE}=1`);
+  if (!marked) return null;
+  try {
+    const last = Number(sessionStorage.getItem(BOUNCE_KEY) || 0);
+    if (now - last < BOUNCE_WINDOW_MS) return null;
+    sessionStorage.setItem(BOUNCE_KEY, String(now));
+  } catch {
+    return null; // no storage → no loop guard → show the form
+  }
+  return `${APP_ORIGIN}${appPathFor(params.get('returnTo') || planReturnTo(params))}`;
+}
+
 /** Exchange the freshly-signed-in session for a one-time hand-off code and
  *  redirect to app.nagm.io/<returnTo path>#code=<code>. No real token ever rides in the URL. */
 export async function handoffToApp(t: Tokens, rememberMe: boolean, returnTo?: string | null): Promise<void> {
