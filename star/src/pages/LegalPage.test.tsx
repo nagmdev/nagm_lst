@@ -19,7 +19,8 @@ describe('Terms of Service and Privacy Policy', () => {
     renderDoc(doc);
     const d = LEGAL[doc].en;
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(d.title);
-    expect(screen.getByTestId('legal-updated')).toHaveTextContent(d.updated);
+    // No "last updated" line (sheet #2).
+    expect(screen.queryByText(/Last updated/)).not.toBeInTheDocument();
     const toc = screen.getByRole('navigation', { name: 'Contents' });
     for (const s of d.sections) {
       expect(within(toc).getByRole('link', { name: s.title })).toHaveAttribute('href', `#${s.id}`);

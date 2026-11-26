@@ -232,7 +232,10 @@ describe('pricing page', () => {
     localStorage.setItem('nagm_lang', 'en');
     const spy = await renderPricing('/pricing?for=companies&market=SA');
     expect(spy).toHaveBeenCalledWith('/billing/catalog', expect.not.objectContaining({ params: expect.anything() }));
-    await waitFor(() => expect(screen.getByTestId('pricing-market')).toHaveTextContent(/Prices for Egypt.*EGP/));
+    // The country banner is gone (sheet #3); the visitor's own currency is what shows.
+    expect((await screen.findAllByText(/EGP/)).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('pricing-market')).not.toBeInTheDocument();
+    expect(screen.queryByText(/your account keeps the country/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Saudi Arabia|UAE|International/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Split it with Tamara/)).not.toBeInTheDocument();
   });
@@ -244,7 +247,7 @@ describe('pricing page', () => {
       market: 'SA', currency: 'SAR', vatBps: 1500, tamaraAvailable: true, providers: ['paymob', 'tamara'],
       plans: [{ id: 'COMPANY_GROWTH', audience: 'COMPANY', entitlements: { seats: 5 }, prices: { MONTH: sar(46900), YEAR: sar(450000) }, promotions: [] }],
     }));
-    await waitFor(() => expect(screen.getByTestId('pricing-market')).toHaveTextContent(/Prices for Saudi Arabia.*SAR/));
+    expect((await screen.findAllByText(/SAR/)).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Monthly' }));
     expect(screen.getByText('Split it with Tamara')).toBeInTheDocument();
   });

@@ -131,7 +131,7 @@ describe('handoffToApp', () => {
 describe('api backend URL security and fallback', () => {
   it('rewrites requests targeted at nagm-backend to backend-yqpd', async () => {
     // Test that the interceptor rewrites both baseURL and url
-    const requestHandlers = (api.interceptors.request as any).handlers;
+    const requestHandlers = (api.interceptors.request as unknown as { handlers: { fulfilled: (c: { baseURL?: string; url?: string }) => { baseURL?: string; url?: string } }[] }).handlers;
     expect(requestHandlers.length).toBeGreaterThan(0);
     const interceptor = requestHandlers[0].fulfilled;
 

@@ -17,9 +17,6 @@ export default function LegalPage({ doc }: { doc: 'terms' | 'privacy' }) {
         <div className="ns-container" style={{ maxWidth: 820 }}>
           <Eyebrow>{ar ? 'قانوني' : 'Legal'}</Eyebrow>
           <h1 className="ns-h1" style={{ marginBottom: 12 }}>{d.title}</h1>
-          <p className="ns-body" style={{ color: 'var(--ink3)', margin: 0 }} data-testid="legal-updated">
-            {ar ? 'آخر تحديث: ' : 'Last updated: '}{d.updated}
-          </p>
           <p className="ns-lede" style={{ maxWidth: '68ch', marginTop: 18 }}>{d.intro}</p>
         </div>
       </section>

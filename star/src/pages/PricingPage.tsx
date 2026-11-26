@@ -7,7 +7,7 @@ import { BillingScene, ChevronField } from '../design/art';
 import { Icon, Arrow, type IconName } from '../design/icons';
 import { PlanCard } from '../design/plans';
 import {
-  PLANS, FEATURES, MARKET_META, vatLabel, bestSavingsPercent, seatsOf,
+  PLANS, FEATURES, vatLabel, bestSavingsPercent, seatsOf,
   type Audience, type Interval,
 } from '../data/pricing';
 import { useVisitorCatalog } from '../data/useVisitorCatalog';
@@ -86,10 +86,6 @@ export default function PricingPage() {
             </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <span className="ns-market-pill" data-active="true" data-testid="pricing-market" title={p.market.locked}>
-              <Icon name="globe" size={15} />{p.market.pricesFor(p.market[market])} <span className="ns-mono" style={{ fontSize: 11 }}>{MARKET_META[market].currency}</span>
-            </span>
-            <span className="ns-body" style={{ fontSize: 13 }}>{p.market.locked}</span>
             <span className="ns-body" style={{ fontSize: 13, marginInlineStart: 'auto' }}>
               {market === 'INTL' ? p.market.noVat : p.market.vatNote(vatLabel(market))}
               {!cat.live && <span> · {p.offline}</span>}

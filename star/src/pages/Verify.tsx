@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
+/** Seconds between code sends (server: services/otpPolicy OTP_RESEND_MS). */
+const RESEND_SECONDS = 60;
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from '../design/glyphs';
 import AuthShell from './AuthShell';
@@ -21,6 +24,15 @@ const Verify: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
+  // One code a minute (server policy, sheet #56). The server answers a resend
+  // inside the minute without saying so, so the page counts down itself — from
+  // arrival, since sign-up has just sent a code (unless it could not).
+  const [wait, setWait] = useState(state?.notice === 'codeNotSent' ? 0 : RESEND_SECONDS);
+  useEffect(() => {
+    if (wait <= 0) return;
+    const id = window.setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [wait]);
   const [err, setErr] = useState(state?.notice === 'codeNotSent' ? t.codeNotSent : '');
   // Set by sign-up: the code could not be sent, or this was an earlier,
   // unconfirmed sign-up that just got a new code.
@@ -80,10 +92,10 @@ const Verify: React.FC = () => {
   };
 
   const resend = async () => {
-    if (resending) return; // guard against a double-tap firing two /resend calls
+    if (resending || wait > 0) return; // guard against a double-tap firing two /resend calls
     setResending(true);
     setErr(''); setMsg('');
-    try { await authApi.resend(email); setMsg(t.newCodeSent); }
+    try { await authApi.resend(email); setMsg(t.newCodeSent); setWait(RESEND_SECONDS); }
     catch (e2) { setErr(tr(apiError(e2, t.failResendVerify))); }
     finally { setResending(false); }
   };
@@ -156,8 +168,8 @@ const Verify: React.FC = () => {
         </button>
       </form>
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-        <button type="button" onClick={resend} disabled={resending} style={{ ...plainButton, justifyContent: 'center', width: '100%', color: 'var(--brandInk)', fontWeight: 600, fontSize: 13.5, cursor: resending ? 'default' : 'pointer', opacity: resending ? 0.6 : 1 }}>
-          {resending ? t.sending : t.resendCode}
+        <button type="button" onClick={resend} disabled={resending || wait > 0} style={{ ...plainButton, justifyContent: 'center', width: '100%', color: 'var(--brandInk)', fontWeight: 600, fontSize: 13.5, cursor: resending || wait > 0 ? 'default' : 'pointer', opacity: resending || wait > 0 ? 0.6 : 1 }}>
+          {resending ? t.sending : wait > 0 ? t.resendIn(wait) : t.resendCode}
         </button>
         <button type="button" onClick={() => navigate('/register')} style={{ ...plainButton, color: 'var(--ink2)', fontWeight: 500, fontSize: 13, padding: '4px 8px' }}>
           <BackArrow size={13} aria-hidden="true" /> {t.backToSignup}

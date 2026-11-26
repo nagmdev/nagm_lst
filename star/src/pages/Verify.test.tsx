@@ -113,16 +113,36 @@ describe('Verify', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('انتهت صلاحية رمز التحقق. اطلب رمزاً جديداً.');
   });
 
+  it('waits a minute after sign-up sent a code before offering another (sheet #56)', () => {
+    vi.useFakeTimers();
+    try {
+      renderVerify();
+      const button = screen.getByRole('button', { name: /Resend in 60s/ });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+      expect(api.resend).not.toHaveBeenCalled();
+      for (let i = 0; i < 61; i += 1) act(() => { vi.advanceTimersByTime(1000); });
+      expect(screen.getByRole('button', { name: 'Resend code' })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('resends a code once per tap', async () => {
     let finish: () => void = () => {};
     api.resend.mockImplementation(() => new Promise<void>((r) => { finish = r; }));
+    vi.useFakeTimers();
     renderVerify();
+    for (let i = 0; i < 61; i += 1) act(() => { vi.advanceTimersByTime(1000); });
+    vi.useRealTimers();
     const button = screen.getByRole('button', { name: 'Resend code' });
     fireEvent.click(button);
     fireEvent.click(button);
     expect(api.resend).toHaveBeenCalledTimes(1);
     await act(async () => finish());
     expect(await screen.findByRole('status')).toHaveTextContent('A new code is on its way.');
+    // …and the next one is a minute away again.
+    expect(screen.getByRole('button', { name: /Resend in \d+s/ })).toBeDisabled();
   });
 });
 

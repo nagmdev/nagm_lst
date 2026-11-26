@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Building2, Check, Eye, EyeOff, Mail, ArrowLeft, ArrowRight, User } from '../design/glyphs';
 import AuthShell from './AuthShell';
 import RoleCards from '../components/auth/RoleCards';
-import { authApi, handoffToApp, apiError, rememberPendingSignIn, planReturnTo } from '../auth';
+import { authApi, handoffToApp, apiError, rememberPendingSignIn, planReturnTo, signedInAppUrl } from '../auth';
 import { useBfcacheReset } from '../utils/useBfcacheReset';
 import { signInPasswordIssue } from '../utils/signInPassword';
 import type { AccountRole, RegisterPayload } from '../auth';
@@ -55,6 +55,17 @@ const AuthPage: React.FC = () => {
   const formRef = useRef<HTMLFormElement>(null);
 
   const initialMode: AuthMode = location.pathname === '/login' ? 'login' : 'signup';
+
+  // Already signed in to the app (sheet #99: "stay signed in" seemed not to
+  // work because this page always showed the form): go back into the app.
+  // Only the sign-in page; the rules are in signedInAppUrl.
+  useEffect(() => {
+    if (location.pathname !== '/login') return;
+    const target = signedInAppUrl(new URLSearchParams(location.search));
+    if (target) window.location.replace(target);
+    // Only on arrival: switching tabs inside the page is not a new visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
   // Sign-up has three entities — Candidate | Recruiter | Company — and "Company"
   // is a real one: it registers the organisation and that person becomes its

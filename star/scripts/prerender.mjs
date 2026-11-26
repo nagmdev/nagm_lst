@@ -26,6 +26,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { JSDOM } from 'jsdom';
 import Beasties from 'beasties';
+import { buildCsp } from './csp.mjs';
 
 // React and the router pick their production builds from this.
 process.env.NODE_ENV ??= 'production';
@@ -52,20 +53,7 @@ const SCRIPT_HASHES = [BOOT_HASH, ...TEMPLATE_HASHES].join(' ');
 
 // The API origin baked into this build (VITE_BACKEND_API), or same-origin for a relative one.
 const apiOrigin = /^https?:/.test(API_BASE) ? new URL(API_BASE).origin : '';
-const CSP = [
-  "default-src 'self'",
-  `script-src 'self' ${SCRIPT_HASHES} https://www.googletagmanager.com https://*.googletagmanager.com https://tagmanager.google.com https://www.google-analytics.com https://*.google-analytics.com https://*.doubleclick.net https://*.googleadservices.com https://*.googlesyndication.com https://www.google.com https://vercel.live`,
-  // React writes style="" attributes; allow Google Tag Manager / Tag Assistant / Vercel Toolbar styles too.
-  "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com https://vercel.live",
-  "img-src 'self' data: https:",
-  "font-src 'self' https://fonts.gstatic.com https://vercel.live data:",
-  `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''} https://www.googletagmanager.com https://*.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.doubleclick.net https://*.googleadservices.com https://*.googlesyndication.com https://www.google.com https://www.google.com.eg https://www.google.com.sa https://www.google.ae https://www.google.co.uk https://vercel.live wss://vercel.live wss://*.pusher.com https://*.pusher.com`,
-  "frame-src 'self' https://www.googletagmanager.com https://*.doubleclick.net https://www.google.com https://vercel.live",
-  "manifest-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "form-action 'self'",
-].join('; ');
+const CSP = buildCsp({ scriptHashes: SCRIPT_HASHES, apiOrigin });
 const harden = (html) => html
   .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`)
   .replace('<script src="/boot.js"></script>', `<script>${BOOT}</script>`);
